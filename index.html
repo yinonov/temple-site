@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="temple-build" content="public" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101d2b" />
+    <title>בית שני ההרודיאני — זמן, מקום ומקורות</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="src/presentation/styles.css" />
+    <!-- Three.js (ADR-003): vendored, no CDN. Must precede every module script. -->
+    <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
+  </head>
+  <body>
+    <a class="skip-link" href="#state-region" id="skip-link">דלגו לתוכן במצב הנוכחי</a>
+    <div id="mode-banner" class="mode-banner" role="note" hidden>
+      <strong id="mode-banner-text"></strong>
+    </div>
+    <p id="mode-banner-detail" class="mode-banner-detail" hidden></p>
+    <div id="fixture-banner" class="fixture-banner" role="note" hidden></div>
+
+    <header class="topbar">
+      <div class="identity">
+        <span class="sigil" aria-hidden="true">◒</span>
+        <div>
+          <p class="kicker" id="app-kicker">עולם חי מבוסס מקורות</p>
+          <h1 id="app-heading">בית שני ההרודיאני</h1>
+        </div>
+      </div>
+      <div class="topbar-meta">
+        <button type="button" class="present-open" id="present-open" data-focus-key="present-open" hidden></button>
+        <p class="mode-label" id="mode-label"></p>
+        <p class="scope" id="app-scope"></p>
+        <button type="button" class="report-button general-report" id="feedback-general" aria-haspopup="dialog" data-focus-key="report-general-header" hidden></button>
+      </div>
+    </header>
+
+    <main class="layout" id="app" aria-busy="true">
+      <p class="loading" id="loading">טוען נתונים…</p>
+
+      <section class="panel tour-panel" id="tour" aria-labelledby="tour-heading" hidden></section>
+
+      <section class="panel timeline-panel" id="timeline" aria-labelledby="timeline-heading" hidden>
+        <h2 id="timeline-heading" class="panel-heading"></h2>
+
+        <div class="field day-type-field">
+          <label for="day-type" id="day-type-label"></label>
+          <select id="day-type" aria-describedby="day-type-hint"></select>
+          <p class="hint" id="day-type-hint"></p>
+          <p class="hint day-type-definition" id="day-type-definition" hidden></p>
+        </div>
+
+        <div class="tabs" role="tablist" id="time-tabs">
+          <button type="button" role="tab" id="tab-sequence" aria-controls="panel-sequence" aria-selected="true"></button>
+          <button type="button" role="tab" id="tab-clock" aria-controls="panel-clock" aria-selected="false" tabindex="-1"></button>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="panel-sequence" aria-labelledby="tab-sequence">
+          <p class="hint" id="sequence-intro"></p>
+          <div id="sequence-body">
+            <div class="field" id="sequence-select-field" hidden>
+              <label for="sequence-select" id="sequence-select-label"></label>
+              <select id="sequence-select"></select>
+            </div>
+            <p class="sequence-name" id="sequence-name"></p>
+            <p class="stage-note" id="sequence-stage-note" hidden></p>
+            <div class="sequence-meta" id="sequence-meta"></div>
+            <p class="position" id="sequence-position" aria-hidden="true"></p>
+            <div class="range-wrap">
+              <label for="seq-range" id="seq-range-label" class="sr-only"></label>
+              <input id="seq-range" type="range" min="0" max="0" step="1" value="0" />
+            </div>
+            <div class="button-row" id="sequence-buttons">
+              <button type="button" id="seq-first"></button>
+              <button type="button" id="seq-prev"></button>
+              <button type="button" id="seq-next"></button>
+              <button type="button" id="seq-last"></button>
+            </div>
+            <ol class="step-list" id="seq-steps"></ol>
+            <details class="order-note" id="order-note">
+              <summary id="order-note-summary"></summary>
+              <p id="order-note-text"></p>
+            </details>
+            <div id="order-evidence"></div>
+          </div>
+          <p class="hint" id="no-sequence" hidden></p>
+        </div>
+
+        <div class="tabpanel" role="tabpanel" id="panel-clock" aria-labelledby="tab-clock" hidden>
+          <p class="hint" id="clock-intro"></p>
+          <p class="clock-readout" id="clock-readout" aria-hidden="true">12:00</p>
+          <div class="range-wrap">
+            <label for="clock-range" id="clock-range-label" class="sr-only"></label>
+            <input id="clock-range" type="range" min="0" max="1439" step="5" value="720" />
+            <div class="range-labels" aria-hidden="true"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:59</span></div>
+          </div>
+          <div class="button-row" role="group" id="clock-jumps"></div>
+          <p class="hint" id="clock-no-events" hidden></p>
+          <div class="play-row">
+            <button type="button" id="play-button" aria-pressed="false"></button>
+            <p class="hint" id="reduced-motion-note" hidden></p>
+          </div>
+          <div class="notice" id="clock-notice" hidden>
+            <p class="notice-title" id="clock-notice-text"></p>
+            <p id="clock-notice-detail"></p>
+            <ul id="clock-notice-list"></ul>
+            <button type="button" id="switch-to-sequence"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel state-panel" id="state-region" tabindex="-1" aria-labelledby="state-heading" hidden>
+        <h2 id="state-heading" class="panel-heading"></h2>
+        <p class="assumption-row"><button type="button" class="assumption-chip" id="day-type-chip" aria-controls="day-type"></button></p>
+        <p class="time-readout" id="time-readout"></p>
+        <div id="headline" class="headline"></div>
+        <div id="empty-state" class="empty-state" hidden></div>
+        <div id="event-list" class="event-list"></div>
+        <div id="conditional-list" class="side-list" hidden></div>
+        <div id="revealed-list" class="event-list"></div>
+        <div id="unplaced-list" class="side-list" hidden></div>
+        <ul id="diagnostics" class="diagnostics" hidden></ul>
+      </section>
+
+      <section class="panel scene-panel" id="scene" aria-labelledby="scene-heading" hidden>
+        <h2 id="scene-heading" class="panel-heading"></h2>
+        <div class="scene3d-section" id="scene3d-section">
+          <button type="button" id="scene3d-toggle" class="scene3d-toggle" aria-expanded="false" aria-controls="scene3d-panel"></button>
+          <div id="scene3d-panel" class="scene3d-panel" hidden>
+            <h3 id="scene3d-heading"></h3>
+            <p class="scene3d-tier" id="scene3d-tier" hidden></p>
+            <p class="dialog-preview-strip scene3d-preview-strip" id="scene3d-preview-strip" hidden></p>
+            <p class="hint" id="scene3d-intro"></p>
+            <p class="hint" id="scene3d-middot" hidden></p>
+            <p class="hint scene3d-common-assumed" id="scene3d-common-assumed" hidden></p>
+            <div class="button-row scene3d-modes" role="group" id="scene3d-modes">
+              <button type="button" id="scene3d-overview" aria-pressed="true"></button>
+              <button type="button" id="scene3d-plan" aria-pressed="false"></button>
+              <button type="button" id="scene3d-walk" aria-pressed="false"></button>
+              <button type="button" id="scene3d-framing" aria-pressed="false"></button>
+            </div>
+            <details class="scene3d-help" id="scene3d-help"><summary id="scene3d-help-summary"></summary><p id="scene3d-help-text"></p></details>
+            <p class="hint" id="scene3d-reduced" hidden></p>
+            <p class="scene3d-status" id="scene3d-status" role="status"></p>
+            <div id="scene3d-amah" class="scene3d-amah" hidden></div>
+            <div id="scene3d-conflicts" class="scene3d-conflicts" role="note" hidden></div>
+            <div id="tour-bar" class="tour-bar" hidden></div>
+            <div id="scene3d-container" class="scene3d-container"></div>
+            <div id="scene3d-text-list"></div>
+            <div id="scene3d-persona" class="scene3d-persona" hidden></div>
+            <div id="scene3d-unresolved" class="side-list" hidden></div>
+            <div id="scene3d-not-shown" class="side-list" hidden></div>
+            <div id="scene3d-assumptions" class="scene3d-assumptions-block" hidden></div>
+          </div>
+        </div>
+        <p class="hint" id="scene-placeholder"></p>
+        <div id="scene-graph" class="scene-graph"></div>
+        <div id="scene-chooser" class="scene-chooser" hidden></div>
+        <div id="scene-edges"></div>
+        <div id="scene-locations"></div>
+        <div id="scene-other-locations"></div>
+      </section>
+
+      <section class="panel error-panel" id="error-state" role="alert" hidden></section>
+    </main>
+
+    <p class="sr-only" id="live-status" aria-live="polite"></p>
+
+    <dialog id="evidence-dialog" class="evidence-dialog" aria-labelledby="evidence-dialog-title">
+      <p id="evidence-dialog-strip" class="dialog-preview-strip" hidden></p>
+      <div class="dialog-head">
+        <h2 id="evidence-dialog-title"></h2>
+        <button type="button" id="evidence-close" class="close-button"></button>
+      </div>
+      <div id="evidence-body" class="dialog-body"></div>
+    </dialog>
+
+    <dialog id="feedback-dialog" class="evidence-dialog feedback-dialog"></dialog>
+
+    <dialog id="licences-dialog" class="evidence-dialog licences-dialog" aria-labelledby="licences-title">
+      <div class="dialog-head">
+        <h2 id="licences-title"></h2>
+        <button type="button" id="licences-close" class="close-button"></button>
+      </div>
+      <div id="licences-body" class="dialog-body"></div>
+    </dialog>
+
+    <footer class="footer"><p id="footer-note"></p>
+      <p><button type="button" class="report-button" id="licences-button" aria-haspopup="dialog" data-focus-key="licences-open" hidden></button></p>
+      <p><button type="button" class="report-button general-report" id="feedback-footer" aria-haspopup="dialog" data-focus-key="report-general-footer" hidden></button></p>
+    </footer>
+    <script type="module" src="src/presentation/app.js"></script>
+  </body>
+</html>
