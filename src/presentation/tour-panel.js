@@ -2,7 +2,7 @@
 // The panel works without 3D: the text view lists every stop and shows the event card, location basis and evidence.
 import { h } from "./dom.js";
 import { format } from "./strings.he.js";
-import { clampStop, swipeAction, tourKeyAction } from "./tour.js";
+import { clampStop, conditionalLabel, conditionalNote, endText as composeEndText, swipeAction, tourKeyAction } from "./tour.js";
 import { isolateLatin } from "./view-model.js";
 
 /**
@@ -15,7 +15,7 @@ import { isolateLatin } from "./view-model.js";
  */
 export function createTourPanel({ section, strings, tour, cardFor, renderCard, onStop, onExit, onOpen3d, bar = null }) {
   const s = strings.tour;
-  const { stops, sequences } = tour;
+  const { stops, sequences, chapters = [], range = null } = tour;
   let active = false;
   let index = 0;
   let cardKey = null;
@@ -24,6 +24,20 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
   const direction = () => (getComputedStyle(section).direction === "ltr" ? "ltr" : "rtl");
   const arrow = (glyph) => h("span", { "aria-hidden": "true", text: glyph });
 
+  /** TASK-6-77: a native select of the chapters (keyboard and phone friendly); choosing one jumps to its first stop. */
+  function createChapterPicker(id) {
+    const select = h("select", { id, class: "tour-chapter-select", "data-focus-key": id, "aria-label": s.chapterControl },
+      ...chapters.map((chapter) => h("option", { value: String(chapter.firstStopIndex), text: format(s.chapterOption, { label: chapter.label, n: chapter.firstStopIndex + 1 }) })));
+    select.addEventListener("change", () => go(Number(select.value), { focus: "keep" }));
+    const wrap = h("span", { class: "tour-chapter-picker", hidden: chapters.length < 2 }, select);
+    return { wrap, select, sync(stop) {
+      const chapter = stop?.chapter == null ? null : chapters.find((item) => item.chapter === stop.chapter && item.tractate === (stop.locator?.tractate ?? item.tractate)) ?? chapters.find((item) => item.chapter === stop.chapter);
+      if (chapter) select.value = String(chapter.firstStopIndex);
+    } };
+  }
+  const chapterPicker = createChapterPicker("tour-chapter-select");
+  const barChapterPicker = createChapterPicker("tour-bar-chapter-select");
+
   const heading = h("h2", { id: "tour-heading", class: "panel-heading", text: s.heading });
   const startButton = h("button", { type: "button", id: "tour-start", class: "tour-start", "data-focus-key": "tour-start", text: s.start,
     on: { click: () => start(0) } });
@@ -31,6 +45,8 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
   const nextButton = h("button", { type: "button", id: "tour-next", "data-focus-key": "tour-next", on: { click: () => go(index + 1) } }, s.next, arrow(" ←"));
   const exitButton = h("button", { type: "button", id: "tour-exit", class: "tour-exit", "data-focus-key": "tour-exit", text: s.exit, on: { click: () => exit() } });
   const stopHeading = h("h3", { id: "tour-stop-heading", class: "tour-stop-heading", tabindex: "-1" });
+  const chapterLine = h("p", { class: "tour-chapter", id: "tour-chapter" });
+  const conditionalLine = h("p", { class: "tour-conditional-note small", id: "tour-conditional-note", role: "note" });
   const sequenceLine = h("p", { class: "tour-sequence" });
   const stageNote = h("p", { class: "stage-note tour-stage-note" });
   const continuation = h("div", { class: "tour-continuation", role: "note" });
@@ -44,9 +60,9 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
   const list = h("div", { class: "tour-stops-list" });
   const details = h("details", { class: "tour-stops", id: "tour-stops" }, h("summary", { text: format(s.stopsSummary, { total: stops.length }) }), list);
   const activeBox = h("div", { id: "tour-active", class: "tour-active", hidden: true },
-    stopHeading,
-    h("div", { class: "button-row tour-controls", role: "group", "aria-label": s.controlsLabel }, prevButton, nextButton, exitButton),
-    sequenceLine, stageNote, continuation, flags, card, dayNote,
+    stopHeading, chapterLine,
+    h("div", { class: "button-row tour-controls", role: "group", "aria-label": s.controlsLabel }, prevButton, nextButton, chapterPicker.wrap, exitButton),
+    sequenceLine, stageNote, continuation, flags, conditionalLine, card, dayNote,
     h("div", { class: "tour-scene" }, sceneNote, open3dButton), keyHint);
   const idleBox = h("div", { class: "tour-idle", id: "tour-idle" }, h("p", { class: "hint", text: s.intro }), h("p", {}, startButton));
   const endNote = h("div", { class: "tour-end", role: "note", hidden: true });
@@ -57,6 +73,7 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
   // M3-01: compact bar beside the canvas: step, title, flags, previous/next/details/exit, end message.
   const barStep = h("span", { class: "tour-bar-step" });
   const barTitle = h("strong", { class: "tour-bar-title", id: "tour-bar-title", tabindex: "-1" });
+  const barChapter = h("span", { class: "tour-bar-chapter small", id: "tour-bar-chapter" });
   const barFlags = h("p", { class: "tour-bar-flags small" });
   const barEnd = h("p", { class: "tour-bar-end small", hidden: true });
   const barPrev = h("button", { type: "button", id: "tour-bar-prev", "data-focus-key": "tour-bar-prev", on: { click: () => go(index - 1) } }, arrow("→ "), s.prev);
@@ -68,8 +85,8 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
     bar.classList.add("tour-bar");
     bar.setAttribute("role", "group");
     bar.setAttribute("aria-label", s.barLabel);
-    bar.replaceChildren(h("p", { class: "tour-bar-head" }, barStep, " ", barTitle), barFlags, barEnd,
-      h("div", { class: "button-row tour-bar-controls" }, barPrev, barNext, barDetails, barExit));
+    bar.replaceChildren(h("p", { class: "tour-bar-head" }, barStep, " ", barChapter, " ", barTitle), barFlags, barEnd,
+      h("div", { class: "button-row tour-bar-controls" }, barPrev, barNext, barChapterPicker.wrap, barDetails, barExit));
     bar.hidden = true;
   }
 
@@ -120,21 +137,32 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
     bar.hidden = !isBarVisible();
     if (bar.hidden) return;
     barStep.textContent = format(s.indicator, { n: stop.number, total: stops.length });
+    barChapter.textContent = stop.chapterTitle ? `· ${stop.chapterTitle} ·` : "";
+    barChapterPicker.sync(stop);
     barTitle.textContent = isolateLatin(stop.title ?? stop.eventId ?? "");
     barFlags.replaceChildren(...[
+      conditionalChip(stop),
       stop.inferred ? h("span", { class: "basis-label basis-inferred tour-inferred", text: s.inferredLocation }) : null,
       stop.placed ? (stop.sameAsPrevious ? h("span", { class: "tour-same-place", text: s.sameAsPrevious }) : null) : h("span", { class: "tour-unplaced", text: s.noPiece }),
       stop.placed && scene.shown === false ? h("span", { class: "tour-not-shown", text: s.pieceNotShown }) : null].filter(Boolean).flatMap((node, i) => (i ? [" ", node] : [node])));
     barPrev.disabled = index === 0;
     barNext.disabled = index === stops.length - 1;
     barEnd.hidden = index !== stops.length - 1;
-    barEnd.textContent = endText(stop);
+    barEnd.textContent = endText();
   }
 
-  /** M3-09: the tour ends at the last published step; the locator comes from the stop's own evidence. */
-  function endText(stop) {
-    return stop.evidenceLocator ? format(s.endBody, { locator: stop.evidenceLocator }) : s.endBodyNoLocator;
+  /** The tour ends at the last published step; the covered range comes from the published records' locators (tour.js). */
+  function endText() {
+    return composeEndText(range, { range: s.endBodyRange, complete: s.endBodyComplete, none: s.endBodyNoLocator, excluded: s.endExcluded });
   }
+
+  /** TASK-6-77: a conditional step says so (kind and whole/partial) and is never shown as the daily default. */
+  function conditionalChip(stop) {
+    if (!stop.conditional) return null;
+    return h("span", { class: "basis-label conditional-chip", "data-conditional": stop.conditional.kind, "data-partial": String(stop.conditional.partial),
+      text: conditionalLabel(stop.conditional, s) });
+  }
+  const conditionalText = (stop) => conditionalNote(stop.conditional, s);
 
   function render() {
     section.dataset.active = String(active);
@@ -146,17 +174,24 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
     stopHeading.textContent = format(s.indicator, { n: stop.number, total: stops.length });
     prevButton.disabled = index === 0;
     nextButton.disabled = index === stops.length - 1;
+    chapterLine.hidden = !stop.chapterTitle;
+    chapterLine.textContent = stop.chapterTitle ?? "";
+    chapterPicker.sync(stop);
     sequenceLine.replaceChildren(h("strong", { text: `${s.sequenceLabel} ` }), isolateLatin(stop.sequenceName ?? ""));
     stageNote.hidden = !stop.stageNote;
     stageNote.textContent = stop.stageNote ?? "";
     continuation.hidden = !stop.continuation;
     continuation.replaceChildren(...(stop.continuation ? [h("strong", { text: `${s.continuationHeading}: ` }),
+      h("span", { class: "tour-continuation-from", text: isolateLatin(stop.continuation.previousSequenceName ?? "") }), " ",
       h("span", { text: isolateLatin(stop.continuation.note ?? "") })] : []));
-    flags.hidden = !stop.inferred;
-    flags.replaceChildren(...(stop.inferred ? [h("span", { class: "basis-label basis-inferred tour-inferred", text: s.inferredLocation })] : []));
+    const flagNodes = [conditionalChip(stop), stop.inferred ? h("span", { class: "basis-label basis-inferred tour-inferred", text: s.inferredLocation }) : null].filter(Boolean);
+    flags.hidden = flagNodes.length === 0;
+    flags.replaceChildren(...flagNodes.flatMap((node, i) => (i ? [" ", node] : [node])));
+    conditionalLine.hidden = !stop.conditional;
+    conditionalLine.textContent = conditionalText(stop);
     const last = index === stops.length - 1;
     endNote.hidden = !last;
-    endNote.replaceChildren(...(last ? [h("strong", { text: `${s.endTitle}. ` }), h("span", { text: endText(stop) })] : []));
+    endNote.replaceChildren(...(last ? [h("strong", { text: `${s.endTitle}. ` }), h("span", { text: endText() })] : []));
     renderScene(stop);
   }
 
@@ -243,6 +278,7 @@ export function createTourPanel({ section, strings, tour, cardFor, renderCard, o
     isActive: () => active,
     barVisible: isBarVisible,
     index: () => index,
+    endText,
     stop: () => (active ? stops[index] : null),
     setScene(next) { scene = { ...scene, ...next }; if (active) renderScene(stops[index]); },
     el: { section }

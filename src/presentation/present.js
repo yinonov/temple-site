@@ -27,7 +27,7 @@ const arrow = (glyph) => h("span", { "aria-hidden": "true", text: glyph });
 /**
  * @param {{ strings: object, dialogs: HTMLElement[], assumptions: HTMLElement, conflicts: HTMLElement,
  *   hooks: { onExit: () => void, onStyle: (mode: "presentation"|"certainty") => void, onStart: () => void,
- *     onPrev: () => void, onNext: () => void, onDetails: () => void, onEndTour: () => void, onOverview: () => void } }} options
+ *     onPrev: () => void, onNext: () => void, onChapter?: (stopIndex: number) => void, onDetails: () => void, onEndTour: () => void, onOverview: () => void } }} options
  */
 export function createPresentation({ strings, dialogs, assumptions, conflicts, hooks }) {
   const s = strings.present;
@@ -129,10 +129,20 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
     h("p", { class: "present-idle-actions" }, startButton));
 
   const stepLabel = h("p", { class: "present-step", id: "present-step" });
+  // TASK-6-77: the chapter ("משנה תמיד ד") beside the step, and a compact chapter picker (native select: keyboard and phone friendly).
+  const chapterText = h("span", { class: "present-chapter", id: "present-chapter" });
+  const chapterSelect = h("select", { id: "present-chapter-select", class: "present-chapter-select", "aria-label": st.chapterControl,
+    on: { change: () => hooks.onChapter?.(Number(chapterSelect.value)) } });
+  const chapterPicker = h("span", { class: "present-chapter-picker", hidden: true }, chapterSelect);
   const stopTitle = h("h2", { class: "present-stop-title", id: "present-stop-title", tabindex: "-1" });
   const attribution = h("p", { class: "present-attribution", id: "present-attribution" });
   const chipRow = h("p", { class: "present-chip-row", id: "present-chip-row" });
-  const endText = h("p", { class: "present-end-text", id: "present-end-text", text: s.endCard });
+  // T-03: the stage note, the continuation note at a sequence boundary and the standing "order is the story's order" line.
+  const stageNoteEl = h("p", { class: "present-stage-note", id: "present-stage-note", hidden: true });
+  const continuationEl = h("p", { class: "present-continuation", id: "present-continuation", role: "note", hidden: true });
+  const orderLine = h("p", { class: "present-order-line small", id: "present-order-line", text: s.orderLine });
+  const notes = h("div", { class: "present-notes", id: "present-notes" }, stageNoteEl, continuationEl, orderLine);
+  const endText = h("p", { class: "present-end-text", id: "present-end-text" });
   const overviewButton = h("button", { type: "button", id: "present-overview", class: "present-btn", text: s.backToOverview, on: { click: () => hooks.onOverview() } });
   const endExitButton = h("button", { type: "button", id: "present-end-exit", class: "present-btn", text: s.exit, "aria-label": s.exitLabel, on: { click: () => hooks.onExit() } });
   // End card (TASK-6-58): at the last stop, says where the recorded steps stop and offers the overview or leaving.
@@ -153,8 +163,9 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
     on: { click: () => hooks.onDetails() } }, s.details);
   const endTourButton = h("button", { type: "button", id: "present-end-tour", class: "present-btn present-quiet", text: s.endTour, on: { click: () => hooks.onEndTour() } });
   const activeMain = h("div", { class: "present-tour-main", id: "present-active-main", "data-expanded": "false" },
-    h("div", { class: "present-step-row" }, stepLabel, h("span", { class: "present-step-actions" }, moreButton, endTourButton)), stopTitle,
-    h("div", { class: "present-meta" }, attribution, chipRow), endNote);
+    h("div", { class: "present-step-row" }, h("span", { class: "present-step-group" }, stepLabel, chapterText),
+      h("span", { class: "present-step-actions" }, chapterPicker, moreButton, endTourButton)), stopTitle,
+    h("div", { class: "present-meta" }, attribution, chipRow), notes, endNote);
   const activeCard = h("div", { class: "present-active", id: "present-active", hidden: true },
     activeMain,
     h("div", { class: "present-tour-controls", role: "group", "aria-label": st.controlsLabel }, prevButton, nextButton, detailsButton),
@@ -339,6 +350,11 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
       if (list) { piecesPop.body.replaceChildren(list); piecesButton.hidden = false; }
     },
     /** Context from the 3D panel render: preview strip, provisional badge, alternatives availability, conflicts. */
+    /** The tour's chapters ({ label, firstStopIndex }) for the picker; set once after the tour is built. */
+    setChapters(chapters = []) {
+      chapterSelect.replaceChildren(...chapters.map((chapter) => h("option", { value: String(chapter.firstStopIndex), text: format(st.chapterOption, { label: chapter.label, n: chapter.firstStopIndex + 1 }) })));
+      chapterPicker.hidden = chapters.length < 2;
+    },
     setContext({ preview = false, provisional = false, hasAlternatives = false, conflict = false, total = 0 } = {}) {
       previewStrip.hidden = !preview;
       tierBadge.hidden = !provisional;
@@ -349,7 +365,8 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
       idleBody.textContent = format(s.startBody, { total });
     },
     /**
-     * model: null (before the tour) or { index, total, title, locator, locationBasis, inferred, placed, certainty,
+     * model: null (before the tour) or { index, total, title, chapterTitle, chapterStart, endText, conditionalKind, conditionalLabel,
+     *   conditionalNote, locator, locationBasis, inferred, placed, certainty,
      *   shown, sameAsPrevious, shotKind: "piece"|"area"|"overview", areaName }.
      */
     setTour(model) {
@@ -360,16 +377,28 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
       activeCard.hidden = !active;
       if (!active) { lastIndex = null; return; }
       stepLabel.textContent = format(st.indicator, { n: model.index + 1, total: model.total });
+      chapterText.textContent = model.chapterTitle ?? "";
+      if (model.chapterStart != null && chapterSelect.querySelector(`option[value="${model.chapterStart}"]`)) chapterSelect.value = String(model.chapterStart);
+      endText.textContent = model.endText ?? s.endCardNoRange;
       stopTitle.textContent = isolateLatin(model.title ?? "");
-      attribution.textContent = model.locator ? format(s.attribution, { locator: model.locator }) : s.noAttribution;
+      // T-08: same locators as the title when it carries them ("לפי משנה תמיד א, ב; א, ד").
+      attribution.textContent = model.attributionText ? isolateLatin(model.attributionText) : model.locator ? format(s.attribution, { locator: model.locator }) : s.noAttribution;
+      attribution.dataset.same = String(Boolean(model.attributionText));
+      stageNoteEl.hidden = !model.stageNote;
+      stageNoteEl.textContent = model.stageNote ? isolateLatin(model.stageNote) : "";
+      continuationEl.hidden = !model.continuation;
+      continuationEl.replaceChildren(...(model.continuation ? [h("strong", { text: `${st.continuationHeading}: ` }),
+        h("span", { text: isolateLatin(model.continuation.previousSequenceName ?? "") }), " ", h("span", { text: isolateLatin(model.continuation.note ?? "") })] : []));
       const chips = [
+        model.conditionalLabel ? h("span", { class: "present-chip present-conditional", "data-conditional": model.conditionalKind ?? "other", text: model.conditionalLabel }) : null,
         model.certainty ? certaintyChip(model.certainty, strings, "present-chip present-certainty-chip") : null,
         h("span", { class: "present-chip present-location", "data-basis": model.locationBasis ?? "unknown",
           text: `${s.locationLabel}: ${strings.locationBasis[model.locationBasis] ?? strings.locationBasis.unknown}` }),
         !model.placed ? h("span", { class: "present-chip present-note", "data-shot": model.shotKind ?? "overview",
           text: model.shotKind === "area" && model.areaName ? format(s.unplacedArea, { area: model.areaName }) : s.unplacedNote }) : null,
         model.placed && model.shown === false ? h("span", { class: "present-chip present-note", text: st.pieceNotShown }) : null,
-        model.placed && model.sameAsPrevious ? h("span", { class: "present-chip present-note", text: st.sameAsPrevious }) : null
+        model.placed && model.sameAsPrevious ? h("span", { class: "present-chip present-note", text: st.sameAsPrevious }) : null,
+        model.conditionalNote ? h("span", { class: "present-chip present-note present-conditional-note", text: model.conditionalNote }) : null
       ].filter(Boolean);
       chipRow.replaceChildren(...chips);
       const last = model.index === model.total - 1;
@@ -404,8 +433,8 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
     hudInsets() {
       const area = stage.getBoundingClientRect();
       const top = Math.max(0, ...[...top_rows()].map((el) => el.getBoundingClientRect().bottom - area.top));
-      const bottomEl = bottom.querySelector(".present-idle:not([hidden]), .present-active:not([hidden])");
-      return { top, bottom: bottomEl ? Math.max(0, area.bottom - bottomEl.getBoundingClientRect().top) : 0 };
+      // The whole bottom panel (its padding and border included), so a label can never touch the card.
+      return { top, bottom: Math.max(0, area.bottom - bottom.getBoundingClientRect().top) };
     },
     focusables: () => [...root.querySelectorAll(FOCUSABLE)],
     el: { get root() { return root; } }

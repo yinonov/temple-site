@@ -17,7 +17,7 @@ import { buildPersonaView, personaOptions, pieceAccessMap, ruleEvidence } from "
 import { createStore, initialState, parseAltParam, parsePersonaParam, parseSeqParam, toQuery, withAltParam, withPersonaParam, withSeqParam } from "./store.js";
 import { format, strings } from "./strings.he.js";
 import { createTimeline } from "./timeline.js";
-import { buildTourStops, parseTourParam, withTourParam } from "./tour.js";
+import { buildTourStops, conditionalLabel, conditionalNote, endText as tourEndText, parseTourParam, withTourParam } from "./tour.js";
 import { createTourPanel } from "./tour-panel.js";
 import { createLicencesDialog } from "./licences.js";
 import { createPresentation, parsePresentParam, withPresentParam } from "./present.js";
@@ -134,6 +134,8 @@ let tourPanel = null;
 let tourEventView = null;
 let tourEvidenceFor = null;
 let tourTotal = 0;
+let tourChapters = [];
+let tourRange = null;
 // Presentation mode (TASK-6-57): a second renderer lives in the overlay; scene3d.renderer points at it while presenting.
 let presentation = null;
 const presenting = { token: 0, renderer: null, pageRenderer: null };
@@ -236,7 +238,10 @@ function resolveSubject(subject, vm, worldState = null) {
   if (kind === "event") {
     // A tour stop's event need not be active at the timeline's current step; its own view is searched last.
     const event = [...vm.events, ...(vm.revealedEvents ?? []), ...(tourEventView ? [tourEventView] : [])].find((item) => item.id === id);
+    const eventRecord = (world?.events ?? []).find((item) => item.id === id);
+    const sequenceRecord = (world?.sequences ?? []).find((item) => item.id === eventRecord?.timing?.sequenceId);
     return event ? { title: format(strings.evidence.dialogTitle, { title: event.title ?? event.id }), evidence: event.evidence, location: event.location,
+      collapseIds: sequenceRecord?.orderEvidenceIds ?? [], eventId: event.id, alternatives: (event.alternatives ?? []).filter((group) => !group.selectable),
       returnKey: tourEvidenceFor === event.id ? `show-evidence-${event.id}-tour` : `show-evidence-${event.id}`, preview, tier: event.tier } : null;
   }
   const seq = vm.time?.sequence;
@@ -356,7 +361,8 @@ function syncTourMarkers(renderer, stop) {
   const { markers } = markersAt(world, { eventId: stop.eventId });
   // entityKind (entities.json "kind", e.g. "group") lets the scene mark a group of unspecified size without adding figures.
   const kinds = new Map((world?.entities ?? []).map((entity) => [entity.id, entity.kind]));
-  renderer.setMarkers(markers.map((marker) => ({ ...marker, entityKind: kinds.get(marker.entityId) ?? null })), { pieceIds: stop.pieces.map((piece) => piece.id) });
+  // T-02: a High Priest marker is always conditional (the label says so); it is never the daily default.
+  renderer.setMarkers(markers.map((marker) => ({ ...marker, entityKind: kinds.get(marker.entityId) ?? null, conditional: marker.roleId === "role-kohen-gadol" })), { pieceIds: stop.pieces.map((piece) => piece.id) });
 }
 
 /**
@@ -413,7 +419,16 @@ function syncPresent() {
   const stop = tourPanel?.isActive() ? tourPanel.stop() : null;
   if (!stop) { presentation.setTour(null); return; }
   const event = tourEventView?.id === stop.eventId ? tourEventView : null;
+  const chapter = tourChapters.find((item) => item.chapter === stop.chapter);
+  // T-08: the attribution line names the same locators as the title ("(לפי משנה תמיד א, ב; א, ד)"), else the primary locator.
+  const titleLocators = /\((לפי [^)]*)\)\s*$/u.exec(stop.title ?? "")?.[1] ?? null;
   presentation.setTour({ index: stop.index, total: tourTotal, title: stop.title ?? stop.eventId, locator: stop.evidenceLocator ?? null,
+    attributionText: titleLocators, stageNote: stop.stageNote ?? null,
+    continuation: stop.continuation ? { previousSequenceName: stop.continuation.previousSequenceName ?? "", note: stop.continuation.note ?? "" } : null,
+    chapterTitle: stop.chapterTitle ?? null, chapterStart: chapter?.firstStopIndex ?? null,
+    endText: tourEndText(tourRange, { range: strings.present.endCardRange, complete: strings.present.endCardComplete, none: strings.present.endCardNoRange, excluded: strings.present.endCardExcluded }),
+    conditionalKind: stop.conditional?.kind ?? null, conditionalLabel: stop.conditional ? conditionalLabel(stop.conditional, strings.tour) : null,
+    conditionalNote: stop.conditional ? conditionalNote(stop.conditional, strings.tour) : null,
     locationBasis: stop.locationBasis, inferred: stop.inferred, placed: stop.placed, certainty: event?.certainty ?? null,
     shown: scene3d.lastShown, sameAsPrevious: stop.sameAsPrevious, shotKind: stop.frame?.kind ?? "overview", areaName: stop.frame?.areaName ?? null });
 }
@@ -779,6 +794,7 @@ function setupPresent() {
       onStart: () => { tourPanel.start(0, { focus: false }); presentation.focusStart(); },
       onPrev: () => tourPanel.go(tourPanel.index() - 1, { focus: null }),
       onNext: () => tourPanel.go(tourPanel.index() + 1, { focus: null }),
+      onChapter: (stopIndex) => tourPanel.go(stopIndex, { focus: null }),
       onDetails: () => {
         const stop = tourPanel.stop();
         if (!stop) return;
@@ -950,7 +966,10 @@ async function boot() {
     onStop: onTourStop, onExit: onTourExit, onOpen3d: tourOpen3d, bar: $("tour-bar") });
   tourPanel.setScene({ webgl: scene3d.webgl });
   tourTotal = tourData.stops.length;
+  tourChapters = tourData.chapters;
+  tourRange = tourData.range;
   setupPresent();
+  presentation.setChapters(tourChapters);
   $("loading").hidden = true;
   for (const id of ["timeline", "state-region", "scene"]) $(id).hidden = false;
   $("app").setAttribute("aria-busy", "false");

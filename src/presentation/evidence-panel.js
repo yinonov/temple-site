@@ -48,7 +48,7 @@ export function evidenceButton({ subjectKey, label, text, onOpen, className = "s
     "aria-label": label, "aria-haspopup": "dialog", on: { click: () => onOpen(subjectKey) }, ...extra }, text);
 }
 
-function alternativesBlock(event, strings, onSelectAlternative) {
+export function alternativesBlock(event, strings, onSelectAlternative) {
   if (!event.alternatives.length) return null;
   return h("div", { class: "alternatives" },
     h("h4", { text: strings.event.alternativesHeading }),
@@ -310,7 +310,16 @@ export function createEvidenceDialog({ dialog, title, body, closeButton, strip, 
     // TASK-6-19: a subject may bring its own leading block (3D piece provenance) and a report target for itself.
     const report = subject.report && onReport ? h("p", { class: "subject-report" }, reportButton({ target: subject.report.target,
       subject: subject.report.subject, strings, onReport })) : null;
-    body.replaceChildren(...[location, tier, report, subject.extra ?? null, ...subject.evidence.map((item) => renderEvidenceItem(item, strings, { onReport }))].filter(Boolean));
+    // T-06: the sequence-level evidence (the story-order record every stop of a sequence repeats) sits behind one disclosure.
+    const collapseIds = new Set(subject.collapseIds ?? []);
+    const own = subject.evidence.filter((item) => !collapseIds.has(item.id));
+    const shared = subject.evidence.filter((item) => collapseIds.has(item.id));
+    const sequenceBlock = shared.length ? h("details", { class: "sequence-evidence" },
+      h("summary", { text: format(strings.evidence.sequenceEvidence, { count: shared.length }) }),
+      shared.map((item) => renderEvidenceItem(item, strings, { onReport }))) : null;
+    // T-11: an event-level alternative group the visitor cannot select (show_all) is shown with its question and caveat.
+    const groups = subject.alternatives?.length ? alternativesBlock({ id: subject.eventId ?? "event", alternatives: subject.alternatives }, strings, null) : null;
+    body.replaceChildren(...[location, tier, report, subject.extra ?? null, groups, ...own.map((item) => renderEvidenceItem(item, strings, { onReport })), sequenceBlock].filter(Boolean));
   }
   return {
     open(subject) {

@@ -30,6 +30,8 @@ export { LEGEND_3D, SIZE_STYLES, legendPresence, webglAvailable };
 
 /** Eye height in walk mode (metres): a viewing parameter, not a historical claim. */
 export const EYE_HEIGHT_METRES = 1.6;
+/** T-09: a close-up shot is never nearer than this share of the distance that fits the piece's parent (its court) in view. */
+export const MIN_CONTEXT_SHARE = 0.8;
 
 /** Thrown when WebGL2 is unavailable or the renderer cannot be created; `code` is "WEBGL_UNAVAILABLE". */
 export class WebGLUnavailableError extends Error {
@@ -218,7 +220,8 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
       if (overlay.style.display !== "block") return [];
       const r = overlay.getBoundingClientRect();
       const v = viewport.getBoundingClientRect();
-      return [{ left: r.left - v.left, top: r.top - v.top, w: r.width, h: r.height }];
+      // `move`: when the marker panel cannot clear this label it is moved next to the panel instead (never hidden).
+      return [{ left: r.left - v.left, top: r.top - v.top, w: r.width, h: r.height, move: (left, top) => { overlay.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`; } }];
     } });
   root.setAttribute("data-markers-count", "0");
   let markerRequest = null; // { descriptors, pieceIds } kept so a style switch or a new solve redraws them
@@ -749,7 +752,9 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
     if (!wholeBox) {
       const wanted = Math.max(spans.height / (2 * tanV * fraction * free), spans.width / (2 * tanH * 0.5)) + spans.depth * 0.3;
       const cap = context ? distanceToFit(context, centre, direction) / free * 0.9 : Infinity;
-      distance = Math.max(visible, Math.min(wanted, cap));
+      // T-09: a minimum camera distance, so a small piece is still seen within its court (walls and edge lines never fill the frame).
+      const floor = context ? distanceToFit(context, centre, direction) / free * MIN_CONTEXT_SHARE : 0;
+      distance = Math.max(visible, floor, Math.min(wanted, cap));
     }
     let target;
     let position;

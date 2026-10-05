@@ -72,14 +72,32 @@ async function fetchJson(fetchImpl, path) {
 const asPath = (file) => (file.startsWith("/") ? file : `/${file}`);
 const relative = (file) => file.replace(/^\/+/, "");
 
+export const FETCH_CONCURRENCY = 24;
+
+/** Runs at most `max` async tasks at a time, in call order. */
+export function createLimiter(max) {
+  let active = 0;
+  const queue = [];
+  const next = () => {
+    if (active >= max || queue.length === 0) return;
+    active += 1;
+    const { task, resolve, reject } = queue.shift();
+    Promise.resolve().then(task).then(resolve, reject).finally(() => { active -= 1; next(); });
+  };
+  return (task) => new Promise((resolve, reject) => { queue.push({ task, resolve, reject }); next(); });
+}
+
 /** Build the read-world-shaped raw object from a manifest. Missing optional lists are fine. */
 export async function loadFromManifest(manifest, fetchImpl, { base = "/", policyFallback = false } = {}) {
   const files = manifest?.files;
   if (!files || typeof files !== "object") throw new DataLoadError("manifest", { file: "manifest.files" });
   const resolve = (file) => asPath(base === "/" ? file : `${base.replace(/\/$/, "")}/${relative(file)}`);
   const fileMap = new Map();
+  // Preview mode loads every record file (well over a thousand); unbounded parallel fetches exhaust the browser's request
+  // pool (net::ERR_INSUFFICIENT_RESOURCES), so at most FETCH_CONCURRENCY requests are in flight at once.
+  const limit = createLimiter(FETCH_CONCURRENCY);
   const get = async (file) => {
-    const value = await fetchJson(fetchImpl, resolve(file));
+    const value = await limit(() => fetchJson(fetchImpl, resolve(file)));
     if (value !== null && typeof value === "object") fileMap.set(value, relative(file));
     return value;
   };

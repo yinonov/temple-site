@@ -256,6 +256,7 @@ export const strings = Object.freeze({
     claim: "הטענה",
     previewStrip: "תצוגה מקדימה — לא לפרסום",
     alternativeUndecided: "לא הוכרע",
+    sequenceEvidence: "ראיות לסדר השלבים ({count})",
     alternativeRefLabel: "קריאה חלופית הנוגעת לרשומה זו:",
     staleSummary: "ביקורות קודמות שאינן עדכניות ({count}) — נכתבו על נוסח קודם של הרשומה",
     concernDetails: "הצגת הנימוקים המלאים (באנגלית)",
@@ -538,6 +539,7 @@ export const strings = Object.freeze({
       countUnspecified: "מספר לא נאמר במקור",
       groupUnspecified: "קבוצה — מספר לא נאמר במקור",
       enlarged: "מוגדל לשם קריאות",
+      conditional: "מותנה",
       position: "המיקום והגובה בתוך החלק — בחירת תצוגה",
       locationInferred: "מקום האירוע מוסק"
     },
@@ -688,7 +690,7 @@ export const strings = Object.freeze({
   // Guided tour (TASK-6-47). Chrome only: every stop's content (titles, notes, names, locations) comes from data.
   tour: {
     heading: "סיור: עבודת הבוקר",
-    intro: "סיור מודרך בשלבי הרצפים הרשומים בנתונים, שלב אחר שלב. בכל שלב מוצגים האירוע, מקורו ומידת הביסוס שלו, ואפשר לפתוח את הראיות שלו. הסדר הוא סדר הרצפים שבנתונים, לא שעות.",
+    intro: "סיור מודרך בשלבי הרצפים הרשומים בנתונים, שלב אחר שלב. בכל שלב מוצגים האירוע, מקורו ומידת הביסוס שלו, ואפשר לפתוח את הראיות שלו. הסדר הוא סדר הסיפור במשנה, לא שעות.",
     start: "התחלת הסיור",
     exit: "יציאה מהסיור",
     prev: "השלב הקודם",
@@ -714,8 +716,30 @@ export const strings = Object.freeze({
     sameAsPrevious: "אותו מקום כמו בשלב הקודם",
     open3dUnavailable: "התצוגה התלת־ממדית אינה זמינה בדפדפן זה; הסיור בטקסט מלא בלעדיה.",
     endTitle: "סוף השלבים שבמערכת",
-    endBody: "הסיור מסתיים כרגע בשלב האחרון שפורסם ({locator}). השלבים שאחריו עדיין אינם במערכת.",
-    endBodyNoLocator: "הסיור מסתיים כרגע בשלב האחרון שפורסם. השלבים שאחריו עדיין אינם במערכת.",
+    // The range is derived from the published records' locators (tour.js); nothing here names a mishnah.
+    endBodyRange: "הסיור מסתיים בשלב האחרון שפורסם. הרשומות מכסות את {tractate} {range}. השלבים שאחריו עדיין אינם במערכת.",
+    endBodyComplete: "הסיור מסתיים בשלב האחרון שפורסם. הרשומות מכסות את {tractate} {range}: עבודת הבוקר כפי ש{tractate} מספרת אותה נרשמה כאן עד סופה. קטעים שלא נרשמו אינם בסיור.",
+    endExcluded: "{range} (לא כולל {passages})",
+    endBodyNoLocator: "הסיור מסתיים בשלב האחרון שפורסם. השלבים שאחריו עדיין אינם במערכת.",
+    chapterLabel: "פרק",
+    chapterControl: "מעבר לפרק במשנה",
+    chapterOption: "פרק {label}",
+    conditionalHighPriest: "מותנה: כהן גדול",
+    conditionalShabbat: "מותנה: שבת",
+    conditionalOther: "מותנה",
+    conditionalHighPriestPartial: "מותנה בחלקו: כהן גדול",
+    conditionalShabbatPartial: "מותנה בחלקו: שבת",
+    conditionalOtherPartial: "מותנה בחלקו",
+    conditionalHighPriestDescribed: "מתואר בהשתתפות כהן גדול — לא נאמר אם גם בלעדיו",
+    conditionalNoteHighPriestDescribed: "לפי הרשומה, המשנה מתארת שלב זה בהשתתפות הכהן הגדול ואינה אומרת אם הוא נעשה גם בלעדיו; אינו מוצג כמהלך היומי הרגיל.",
+    conditionalNoteHighPriestParticipant: "לפי הרשומה, הכהן הגדול משתתף בשלב זה; אינו מוצג כמהלך היומי הרגיל.",
+    conditionalNoteHighPriest: "לפי המשנה, שלב זה נעשה רק כשהכהן הגדול משתתף; אינו מוצג כמהלך היומי הרגיל.",
+    conditionalNoteShabbat: "לפי המשנה, שלב זה נעשה בשבת בלבד; אינו מוצג כמהלך היומי הרגיל.",
+    conditionalNoteOther: "לפי הרשומה, שלב זה מותנה; אינו מוצג כמהלך היומי הרגיל.",
+    conditionalNotePartialHighPriest: "לפי הרשומה, חלק מן השלב מותנה בכהן הגדול; ראו את פרטי השלב.",
+    conditionalNotePartialShabbat: "לפי הרשומה, חלק מן השלב מותנה בשבת; ראו את פרטי השלב.",
+    conditionalNotePartialOther: "לפי הרשומה, חלק מן השלב מותנה; ראו את פרטי השלב.",
+    continuationFrom: "ממשיך את: {previous}",
     barDetails: "פרטי השלב והראיות"
   },
   // Presentation mode (TASK-6-57, ADR-004): full-screen 3D walkthrough. Chrome only; every historical string comes from data.
@@ -747,7 +771,9 @@ export const strings = Object.freeze({
     provisionalToggle: "מה פירוש „זמני”?",
     previewStrip: "תצוגה מקדימה — לא לפרסום",
     startTitle: "סיור: עבודת הבוקר",
-    startBody: "סיור מודרך בן {total} שלבים לפי הרצפים הרשומים בנתונים. בכל שלב: האירוע, מקורו ומידת הביסוס שלו.",
+    startBody: "סיור מודרך בן {total} שלבים לפי הרצפים הרשומים בנתונים. בכל שלב: האירוע, מקורו ומידת הביסוס שלו. הסדר הוא סדר הסיפור במשנה, לא שעות.",
+    // T-03: a standing line on the tour card; the stage and continuation notes themselves come from the records.
+    orderLine: "הסדר הוא סדר הסיפור במשנה, לא שעות. ראיות לסדר השלבים — ב„פרטים”.",
     startExplore: "אפשר גם לסייר בעצמכם: גררו לסיבוב, צבטו או גללו לקירוב, ולחצו על חלק כדי לפתוח את מקורותיו.",
     keyHelp: "מקלדת: Tab עובר בין הפקדים; חצים — השלב הקודם והבא בסיור (שמאלה — הבא); בתצוגה החופשית חצים מסובבים ו־+ ו־- מקרבים; [ ו־] עוברים בין חלקים, Enter פותח את פרטיו; Esc סוגר חלון ואחריו יוצא ממצב הצגה.",
     attribution: "לפי {locator}",
@@ -765,7 +791,13 @@ export const strings = Object.freeze({
     labelInferred: "מקום האירוע מוסק",
     // End card (TASK-6-58): says where the recorded steps stop. The range is what the published records cover.
     endCardTitle: "סוף הסיור",
-    endCard: "זה סוף השלבים שברשומות: משנה תמיד א, ב – ג, ה. השלבים הבאים (שחיטה, דם, קטורת, נרות) עדיין אינם במערכת.",
+    // {tractate} {range} come from the published records' locators (tour.js); nothing here names a mishnah.
+    endCardRange: "זה סוף השלבים שברשומות: {tractate} {range}. השלבים הבאים עדיין אינם במערכת.",
+    endCardComplete: "זה סוף השלבים שברשומות: {tractate} {range}. עבודת הבוקר כפי ש{tractate} מספרת אותה נרשמה כאן עד סופה; קטעים שלא נרשמו אינם בסיור.",
+    // T-10: the passages the records cite that are not a stop of their own ({passages} is derived, tour.js excludedPassages).
+    endCardExcluded: "{range} (לא כולל {passages})",
+    endCardNoRange: "זה סוף השלבים שברשומות. השלבים הבאים עדיין אינם במערכת.",
+    chapterShort: "פרק",
     backToOverview: "חזרה למבט כללי",
   },
   licences: {

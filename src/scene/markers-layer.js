@@ -43,7 +43,15 @@ const TINTS = Object.freeze({
   "role-israelite-woman": "#a87f8f",
   "role-man": "#8f9a6a",
   "role-non-priest": "#6fa3a0",
-  "role-foreigner": "#a39a8c"
+  "role-foreigner": "#a39a8c",
+  // TASK-6-77: roles of Tamid 4-7 (colour is only a secondary cue; the label names the role)
+  "role-kohen-gadol": "#c9a24a",
+  "role-segan": "#7a7ab0",
+  "role-chazan": "#b0755e",
+  "role-rosh-hamaamad": "#b0a35e",
+  "role-tamei": "#8a8a8a",
+  "role-people": "#c8b8a0",
+  "role-cymbal-striker": "#b06a6a"
 });
 const FALLBACK_TINTS = Object.freeze(["#7d8fa6", "#a69078", "#85a082", "#a08aa8", "#9fa07a", "#7aa5a3"]);
 
@@ -114,7 +122,50 @@ export function markerNotes(descriptor, strings = {}) {
   return notes.filter(Boolean);
 }
 
-const LABEL_STYLE = "position:absolute;left:0;top:0;display:none;pointer-events:none;box-sizing:border-box;max-width:min(24em,60%);padding:.3rem .5rem;" +
+/**
+ * T-01 (TASK-6-79a): all the role groups of one stop share ONE label panel, so labels can never overlap one another; this
+ * picks a spot for that panel. `anchor` = projected anchor {px,py}; `size` = {w,h}; `area` = {width,height,minTop,maxBottom};
+ * `avoid` = rectangles to stay clear of (the piece-name label). Candidates are tried in a fixed order (above the anchor,
+ * above/below the avoided rectangles, the free area's top and bottom); the first that is inside the free area and clear of
+ * every avoided rectangle wins, else the one with the least overlap.
+ * @returns {{ left:number, top:number, clear:boolean }}
+ */
+export function placePanel(anchor, size, area, avoid = []) {
+  const { w, h } = size;
+  const minTop = area.minTop;
+  const maxTop = Math.max(area.maxBottom - h, minTop);
+  const clampTop = (top) => Math.min(Math.max(top, minTop), maxTop);
+  const clampLeft = (value) => Math.min(Math.max(value, 4), Math.max(area.width - w - 4, 4));
+  const overlap = (x0, y0) => avoid.reduce((sum, r) => {
+    const x = Math.min(x0 + w, r.left + r.w) - Math.max(x0, r.left);
+    const y = Math.min(y0 + h, r.top + r.h) - Math.max(y0, r.top);
+    return sum + (x > -4 && y > -4 ? Math.max(x + 4, 0) * Math.max(y + 4, 0) : 0);
+  }, 0);
+  const left = clampLeft(anchor.px - w / 2);
+  // Candidate spots, best first: above the anchor, clear above/below an avoided rectangle, beside it, then the free area's ends.
+  const spots = [[left, clampTop(anchor.py - h - 8)]];
+  for (const r of avoid) {
+    spots.push([left, clampTop(r.top - h - 6)], [left, clampTop(r.top + r.h + 6)]);
+    for (const x of [r.left - w - 6, r.left + r.w + 6]) spots.push([clampLeft(x), clampTop(anchor.py - h - 8)], [clampLeft(x), minTop], [clampLeft(x), maxTop]);
+  }
+  spots.push([left, minTop], [left, maxTop]);
+  let best = null;
+  for (const [x, y] of spots) {
+    const cost = overlap(x, y);
+    if (cost === 0) return { left: x, top: y, clear: true };
+    if (!best || cost < best.cost) best = { left: x, top: y, cost };
+  }
+  return { left: best.left, top: best.top, clear: false };
+}
+
+/** Disclosure notes that every group of a multi-group stop has (shown once), and each group's remaining ones. */
+export function splitNotes(noteLists) {
+  if (noteLists.length < 2) return { shared: [], own: noteLists.map((list) => [...list]) };
+  const shared = noteLists[0].filter((text) => noteLists.every((list) => list.includes(text)));
+  return { shared, own: noteLists.map((list) => list.filter((text) => !shared.includes(text))) };
+}
+
+const LABEL_STYLE = "position:absolute;left:0;top:0;display:none;pointer-events:none;box-sizing:border-box;max-width:min(26em,92%);padding:.3rem .5rem;" +
   "border-radius:.35rem;background:rgba(255,255,255,.94);color:#1d1c1a;border:1px solid rgba(60,60,60,.55);line-height:1.3;z-index:1;overflow-wrap:anywhere";
 
 /**
@@ -212,44 +263,70 @@ export function createMarkersLayer(THREE, { parent, viewport, strings = {}, labe
       group.add(disc);
       discs.push(disc);
     });
-    labels = next.groups.map((entry) => {
+    // One panel per stop (T-01): a row per role group, the notes every group shares written once at the foot.
+    const el = document.createElement("div");
+    el.className = `scene3d-marker-label${next.groups.length > 1 ? " scene3d-marker-combined" : ""}`;
+    el.dataset.roleId = next.groups.length === 1 ? (next.groups[0].descriptor.roleId ?? "") : "";
+    el.dataset.groups = String(next.groups.length);
+    el.style.cssText = LABEL_STYLE;
+    const noteLists = next.groups.map((entry) => markerNotes(entry.descriptor, strings));
+    const { shared, own } = splitNotes(noteLists);
+    const addNote = (parent, text) => {
+      const note = document.createElement("div");
+      note.className = "scene3d-marker-note";
+      note.textContent = text;
+      note.style.cssText = "font-size:.88em;color:#4a4742";
+      parent.append(note);
+    };
+    next.groups.forEach((entry, i) => {
       const d = entry.descriptor;
-      const el = document.createElement("div");
-      el.className = "scene3d-marker-label";
-      el.dataset.roleId = d.roleId ?? "";
-      el.style.cssText = LABEL_STYLE;
+      const row = document.createElement("div");
+      row.className = "scene3d-marker-group";
+      row.dataset.roleId = d.roleId ?? "";
+      row.style.cssText = i ? "margin-top:.3rem;padding-top:.3rem;border-top:1px solid rgba(60,60,60,.25)" : "";
       const head = document.createElement("div");
-      head.style.cssText = "display:flex;align-items:center;gap:.35rem;font-weight:600";
+      head.style.cssText = "display:flex;flex-wrap:wrap;align-items:baseline;gap:.1rem .35rem";
       const dot = document.createElement("span");
       dot.setAttribute("aria-hidden", "true");
-      dot.style.cssText = `flex:none;width:.7rem;height:.7rem;border-radius:50%;background:${roleTint(d.roleId)};border:1px solid rgba(0,0,0,.35)`;
+      dot.style.cssText = `flex:none;width:.7rem;height:.7rem;border-radius:50%;background:${roleTint(d.roleId)};border:1px solid rgba(0,0,0,.35);align-self:center`;
       const role = document.createElement("span");
       role.className = "scene3d-marker-role";
+      role.style.cssText = "font-weight:600";
       role.textContent = String(labelFor({ kind: "role", id: d.roleId }) ?? "");
       head.append(dot, role);
-      el.append(head);
+      if (d.conditional && strings.conditional) {
+        const cond = document.createElement("span");
+        cond.className = "scene3d-marker-conditional";
+        cond.style.cssText = "font-weight:700;color:#7a4a00";
+        cond.textContent = strings.conditional;
+        head.append(cond);
+      }
       if (d.action?.he) {
-        const action = document.createElement("div");
+        const action = document.createElement("span");
         action.className = "scene3d-marker-action";
         action.textContent = d.action.he;
         action.style.cssText = "overflow-wrap:anywhere"; // never clamped: a trailing hedge must stay visible (TASK-6-64a, F2)
-        el.append(action);
+        head.append(action);
       }
-      for (const text of markerNotes(d, strings)) {
-        const note = document.createElement("div");
-        note.className = "scene3d-marker-note";
-        note.textContent = text;
-        note.style.cssText = "font-size:.88em;color:#4a4742";
-        el.append(note);
-      }
-      const enlarged = document.createElement("div");
-      enlarged.className = "scene3d-marker-note scene3d-marker-enlarged";
-      enlarged.textContent = strings.enlarged ?? "";
-      enlarged.style.cssText = "font-size:.88em;color:#4a4742;display:none";
-      el.append(enlarged);
-      box.append(el);
-      return { el, anchor: entry.anchor, enlarged };
+      row.append(head);
+      for (const text of own[i]) addNote(row, text);
+      el.append(row);
     });
+    if (shared.length) {
+      const foot = document.createElement("div");
+      foot.className = "scene3d-marker-shared";
+      foot.style.cssText = "margin-top:.3rem;padding-top:.3rem;border-top:1px solid rgba(60,60,60,.25)";
+      for (const text of shared) addNote(foot, text);
+      el.append(foot);
+    }
+    const enlarged = document.createElement("div");
+    enlarged.className = "scene3d-marker-note scene3d-marker-enlarged";
+    enlarged.textContent = strings.enlarged ?? "";
+    enlarged.style.cssText = "font-size:.88em;color:#4a4742;display:none";
+    el.append(enlarged);
+    box.append(el);
+    const mean = (key) => next.groups.reduce((sum, entry) => sum + entry.anchor[key], 0) / next.groups.length;
+    labels = [{ el, anchor: { x: mean("x"), y: Math.max(...next.groups.map((entry) => entry.anchor.y)), z: mean("z") }, enlarged }];
     writeMatrices(1);
     return next.figures.length;
   }
@@ -276,27 +353,32 @@ export function createMarkersLayer(THREE, { parent, viewport, strings = {}, labe
     // R-09: label type scales with the viewport (14 px on a phone up to 20 px on a projector) so it stays readable.
     const fontPx = Math.round(Math.min(20, Math.max(14, width / 90)) * 10) / 10;
     box.style.fontSize = `${fontPx}px`;
-    const fixed = (avoid() ?? []).map((r) => ({ ...r, fixed: true }));
-    const placed = [...fixed];
+    const fixed = (avoid() ?? []).map((r) => ({ ...r }));
     for (const label of labels) {
       projected.set(label.anchor.x, label.anchor.y + (scale - 1) * FIGURE.height, label.anchor.z).project(camera);
       if (projected.z > 1 || projected.z < -1) { label.el.style.display = "none"; continue; }
       label.el.style.display = "block";
+      // Fit the free area between the HUD bars: shrink the type a little before anything could be cut (never below 14 px).
+      const free = Math.max(maxBottom - minTop, 20);
+      let px = fontPx;
+      label.el.style.fontSize = "";
+      while (label.el.offsetHeight > free && px > 14) { px -= 1; label.el.style.fontSize = `${px}px`; }
+      label.el.style.maxHeight = `${Math.floor(free)}px`;
+      label.el.style.overflowY = "auto";
       const w = label.el.offsetWidth;
       const h = label.el.offsetHeight;
-      const px = ((projected.x + 1) / 2) * width;
-      const py = ((1 - projected.y) / 2) * height;
-      const left = Math.min(Math.max(px - w / 2, 4), Math.max(width - w - 4, 4));
-      let top = py - h - 8;
-      // Keep clear of the HUD, then of the labels already placed (move below them).
-      for (let pass = 0; pass < 3; pass += 1) {
-        top = Math.min(Math.max(top, minTop), Math.max(maxBottom - h, minTop));
-        const hit = placed.find((r) => left < r.left + r.w + 4 && left + w + 4 > r.left && top < r.top + r.h + 4 && top + h + 4 > r.top);
-        if (!hit) break;
-        top = hit.fixed ? hit.top - h - 6 : hit.top + hit.h + 6; // clear of the piece-name label: above it; of another group: below it
+      const at = placePanel({ px: ((projected.x + 1) / 2) * width, py: ((1 - projected.y) / 2) * height }, { w, h }, { width, height, minTop, maxBottom }, fixed);
+      label.el.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(at.top)}px)`;
+      label.el.dataset.clear = String(at.clear);
+      if (!at.clear) {
+        // No spot clear of the piece-name label: the panel keeps its place and the name label moves next to it (above, else below).
+        for (const r of fixed) {
+          if (typeof r.move !== "function" || !(r.left < at.left + w + 4 && r.left + r.w + 4 > at.left && r.top < at.top + h + 4 && r.top + r.h + 4 > at.top)) continue;
+          const nameLeft = Math.min(Math.max(r.left, 4), Math.max(width - r.w - 4, 4));
+          const slot = [at.top - r.h - 4, at.top + h + 4].find((top) => top >= minTop - 2 && top + r.h <= maxBottom + 2);
+          if (slot !== undefined) { r.move(nameLeft, slot); label.el.dataset.clear = "true"; }
+        }
       }
-      placed.push({ left, top, w, h });
-      label.el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
     }
   }
 
