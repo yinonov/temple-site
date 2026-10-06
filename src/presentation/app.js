@@ -17,7 +17,8 @@ import { buildPersonaView, personaOptions, pieceAccessMap, ruleEvidence } from "
 import { createStore, initialState, parseAltParam, parsePersonaParam, parseSeqParam, toQuery, withAltParam, withPersonaParam, withSeqParam } from "./store.js";
 import { format, strings } from "./strings.he.js";
 import { createTimeline } from "./timeline.js";
-import { buildTourStops, conditionalLabel, conditionalNote, endText as tourEndText, parseTourParam, withTourParam } from "./tour.js";
+import { buildTourStops, conditionalLabel, conditionalNote, endText as tourEndText, orderSequences, parseTourParam, withTourParam } from "./tour.js";
+import { createLive, parseLiveParam, withLiveParam } from "./live.js";
 import { createTourPanel } from "./tour-panel.js";
 import { createLicencesDialog } from "./licences.js";
 import { createPresentation, parsePresentParam, withPresentParam } from "./present.js";
@@ -139,6 +140,10 @@ let tourRange = null;
 // Presentation mode (TASK-6-57): a second renderer lives in the overlay; scene3d.renderer points at it while presenting.
 let presentation = null;
 const presenting = { token: 0, renderer: null, pageRenderer: null };
+// M6 live mode (ADR-005): the morning plays inside the presentation overlay; liveEventView backs the evidence dialog for a bubble.
+let live = null;
+let liveEventView = null;
+let tourDataAll = null;
 const isPresenting = () => Boolean(presentation?.isOpen());
 const memoFilter = createSceneFilterMemo();
 let sceneAnnotations = { inferred: new Set(), via: new Map() };
@@ -237,12 +242,12 @@ function resolveSubject(subject, vm, worldState = null) {
   }
   if (kind === "event") {
     // A tour stop's event need not be active at the timeline's current step; its own view is searched last.
-    const event = [...vm.events, ...(vm.revealedEvents ?? []), ...(tourEventView ? [tourEventView] : [])].find((item) => item.id === id);
+    const event = [...vm.events, ...(vm.revealedEvents ?? []), ...(tourEventView ? [tourEventView] : []), ...(liveEventView ? [liveEventView] : [])].find((item) => item.id === id);
     const eventRecord = (world?.events ?? []).find((item) => item.id === id);
     const sequenceRecord = (world?.sequences ?? []).find((item) => item.id === eventRecord?.timing?.sequenceId);
     return event ? { title: format(strings.evidence.dialogTitle, { title: event.title ?? event.id }), evidence: event.evidence, location: event.location,
       collapseIds: sequenceRecord?.orderEvidenceIds ?? [], eventId: event.id, alternatives: (event.alternatives ?? []).filter((group) => !group.selectable),
-      returnKey: tourEvidenceFor === event.id ? `show-evidence-${event.id}-tour` : `show-evidence-${event.id}`, preview, tier: event.tier } : null;
+      returnKey: liveEventView?.id === event.id && live?.isRunning() ? `live-bubble-${event.id}` : tourEvidenceFor === event.id ? `show-evidence-${event.id}-tour` : `show-evidence-${event.id}`, preview, tier: event.tier } : null;
   }
   const seq = vm.time?.sequence;
   if (kind === "step" && seq) {
@@ -310,6 +315,13 @@ const tourKey = (state) => `${state.dayType}|${JSON.stringify(state.alternativeS
 
 /** The stop's event card view: computed at the event's own first step, in the visitor's day type when the event applies there. */
 function tourCardFor(stop) {
+  const found = eventCardView(stop);
+  tourEventView = found?.event ?? null;
+  return found;
+}
+
+/** An event's card view at its own first step, in the visitor's day type when it applies there (else one of its own). */
+function eventCardView(stop) {
   const state = store.get();
   const event = world.events.find((item) => item.id === stop.eventId);
   const base = toQuery(state);
@@ -322,16 +334,69 @@ function tourCardFor(stop) {
       const vm = buildViewModel({ state: worldState, world, mode: state.mode, strings, selection: {},
         stats: data.stats ?? importResult.stats, importDiagnostics: importResult.diagnostics, dayTypes: dayTypeRecords });
       const view = vm.events.find((item) => item.id === stop.eventId);
-      if (view) {
-        tourEventView = view;
-        return { event: view, dayType, dayTypeLabel: dayType !== state.dayType ? (strings.dayType.values[dayType] ?? dayType) : null };
-      }
+      if (view) return { event: view, dayType, dayTypeLabel: dayType !== state.dayType ? (strings.dayType.values[dayType] ?? dayType) : null };
     } catch (error) {
       console.error("tour stop failed", error);
     }
   }
-  tourEventView = null;
   return null;
+}
+
+// ---- Live mode (M6, ADR-005) ----
+function syncLiveUrl(on) {
+  try {
+    const search = withLiveParam(location.search, on);
+    if (search !== location.search) history.replaceState(history.state, "", `${location.pathname}${search}${location.hash}`);
+  } catch { /* URL sync is a convenience; never break the view */ }
+}
+
+function liveHooks() {
+  const stopOf = (eventId) => tourDataAll?.stops.find((stop) => stop.eventId === eventId) ?? null;
+  return {
+    solved: () => scene3d.solver?.({ world, selections: store.get().alternativeSelections }) ?? null,
+    state: () => store.get(),
+    personaOptions: () => personaOptions(world),
+    viewFor: (eventId) => { const stop = stopOf(eventId); return stop ? eventCardView(stop)?.event ?? null : null; },
+    openEvent: (eventId) => {
+      const stop = stopOf(eventId);
+      liveEventView = stop ? eventCardView(stop)?.event ?? null : null;
+      if (!liveEventView) return;
+      live?.pause(); // the bubble stays put while its sources are read
+      tourEvidenceFor = null;
+      store.dispatch({ type: "openInspector", eventId });
+    },
+    openRule: (ruleId) => store.dispatch({ type: "openSubject", subject: `rule:${ruleId}` }),
+    onTour: () => { stopLive(); tourPanel.start(0, { focus: false }); presentation.focusStart(); },
+    onPersona: (personaId) => store.dispatch({ type: "setPersona", personaId }),
+    hudTop: () => presentation.hudInsets().top,
+    openLegend: () => document.getElementById("present-legend")?.click()
+  };
+}
+
+async function startLive() {
+  if (!isPresenting() || !presenting.renderer || live?.isRunning()) return;
+  if (tourPanel?.isActive()) tourPanel.exit({ focus: false });
+  presenting.renderer.clearMarkers?.();
+  presenting.renderer.setLabelNote?.(null);
+  live ??= createLive({ world, strings, tour: tourDataAll, reducedMotion: scene3d.reducedMotion?.matches ?? false, hooks: liveHooks(),
+    sequenceOrder: orderSequences((world.sequences ?? []).filter((sequence) => (world.events ?? []).some((event) => event.timing?.sequenceId === sequence.id))).map((sequence) => sequence.id) });
+  presentation.setLive(live.hud);
+  syncLiveUrl(true);
+  try {
+    await live.start(presenting.renderer);
+    presentation.markLive?.();
+    live.focus();
+  } catch (error) {
+    console.error("live mode failed", error);
+    stopLive();
+  }
+}
+
+function stopLive() {
+  if (!live?.isRunning()) return;
+  live.stop();
+  liveEventView = null;
+  presentation.setLive(null);
 }
 
 function syncTourUrl(index) {
@@ -711,12 +776,12 @@ function syncPresentUrl(on) {
   } catch { /* URL sync is a convenience; never break the view */ }
 }
 
-async function enterPresent({ fullscreen = false, opener = null } = {}) {
+async function enterPresent({ fullscreen = false, opener = null, live: wantLive = false } = {}) {
   if (!presentation || presentation.isOpen() || scene3d.webgl !== true) return false;
   const token = ++presenting.token;
   // The overlay and the fullscreen request happen synchronously, inside the click that asked for them.
   presentation.open({ fullscreen, opener });
-  syncPresentUrl(true);
+  if (!wantLive) syncPresentUrl(true);
   presentation.setStatus(strings.present.loading);
   try {
     if (!scene3d.solver) {
@@ -751,6 +816,7 @@ async function enterPresent({ fullscreen = false, opener = null } = {}) {
     if (tourPanel?.isActive()) syncTourScene(tourPanel.stop(), { jump: true });
     else renderer.showOverview?.({ animate: false }); // establishing shot: the whole mount for the current option
     syncPresent();
+    if (wantLive && !tourPanel?.isActive()) await startLive();
     presentation.markReady();
     presentation.focusStart();
     return true;
@@ -767,6 +833,8 @@ function exitPresent() {
   presenting.token += 1;
   // Close the inspector through its controller first, so the store is consistent before the page re-renders.
   if (dialog?.isOpen()) dialog.close();
+  const wasLive = Boolean(live?.isRunning());
+  stopLive();
   const renderer = presenting.renderer;
   renderer?.clearMarkers?.();
   presenting.renderer = null;
@@ -776,6 +844,7 @@ function exitPresent() {
   presenting.pageRenderer = null;
   scene3d.flownSolved = null;
   syncPresentUrl(false);
+  if (wasLive) syncLiveUrl(false); // the page stays the page on reload (?view=page)
   tourPanel?.setScene({ open: scene3d.open, renderer: Boolean(scene3d.renderer) });
   render();
   if (tourPanel?.isActive() && scene3d.open && scene3d.renderer) syncTourScene(tourPanel.stop(), { jump: true });
@@ -790,7 +859,7 @@ function setupPresent() {
     assumptions: $("scene3d-assumptions"), conflicts: $("scene3d-conflicts"),
     hooks: {
       onExit: exitPresent,
-      onStyle: (mode) => presenting.renderer?.setStyleMode?.(mode),
+      onStyle: (mode) => { presenting.renderer?.setStyleMode?.(mode); live?.setStyle(mode); },
       onStart: () => { tourPanel.start(0, { focus: false }); presentation.focusStart(); },
       onPrev: () => tourPanel.go(tourPanel.index() - 1, { focus: null }),
       onNext: () => tourPanel.go(tourPanel.index() + 1, { focus: null }),
@@ -806,6 +875,7 @@ function setupPresent() {
       onEscape: () => { if (tourPanel.isActive()) tourPanel.exit({ focus: false }); exitPresent(); },
       onLicences: (opener) => licences?.open(opener),
       onOverview: () => { tourPanel.exit({ focus: false }); presentation.focusStart(); },
+      onLive: () => { startLive(); },
       // The browser took the first Esc to leave fullscreen while a dialog was open: close it, stay in the overlay.
       onCloseDialogs: () => { if (dialog?.isOpen()) dialog.close(); for (const id of ["feedback-dialog", "licences-dialog"]) if ($(id).open) $(id).close(); }
     } });
@@ -945,6 +1015,7 @@ async function boot() {
     try {
       let search = withPersonaParam(withAltParam(location.search, next.alternativeSelections), next.persona);
       if (sequenceChanged) search = withSeqParam(search, sequenceOf(next), defaultSequenceId);
+      if (live?.isRunning()) search = withLiveParam(search, true); // a shared live link stays live
       if (search !== location.search) history.replaceState(history.state, "", `${location.pathname}${search}${location.hash}`);
     } catch { /* URL sync is a convenience; never break the view */ }
   });
@@ -956,10 +1027,14 @@ async function boot() {
     closeButton: $("evidence-close"), strip: $("evidence-dialog-strip"), strings, onClose: () => { tourEvidenceFor = null; store.dispatch({ type: "closeInspector" }); }, onReport });
   $("day-type-chip").addEventListener("click", () => { $("day-type").focus(); $("day-type").scrollIntoView({ block: "center" }); });
   store.subscribe((next, previous) => { if (next.time !== previous.time || next.dayType !== previous.dayType) hideChooser(); render(); });
+  store.subscribe((next, previous) => {
+    if (next.dayType !== previous.dayType || next.alternativeSelections !== previous.alternativeSelections || next.persona !== previous.persona) live?.refresh();
+  });
 
   setup3d();
   scene3d.webgl = webglAvailable();
   const tourData = buildTourStops({ world });
+  tourDataAll = tourData;
   tourPanel = createTourPanel({ section: $("tour"), strings, tour: tourData, cardFor: tourCardFor,
     renderCard: (event) => renderEventCard(event, strings, { ...makeCardHandlers(), idSuffix: "-tour",
       onShowEvidence: (eventId) => { tourEvidenceFor = eventId; store.dispatch({ type: "openInspector", eventId }); } }),
@@ -984,7 +1059,11 @@ async function boot() {
   const tourIn3d = tourIndex !== null && scene3d.webgl === true;
   const presentRequested = parsePresentParam(location.search) && scene3d.webgl === true;
   if (parsePresentParam(location.search) && !presentRequested) syncPresentUrl(false); // no WebGL: the normal page, silently
-  if (presentRequested) {
+  // M6 (ADR-005 D6): a bare URL (or ?live=1) opens the living morning; without WebGL, in preview or with ?view=page, the page.
+  const liveRequested = !presentRequested && tourIndex === null && mode === "published" && parseLiveParam(location.search) && scene3d.webgl === true;
+  if (liveRequested) {
+    await enterPresent({ fullscreen: false, live: true });
+  } else if (presentRequested) {
     // ?present=1: the overlay opens in place of the 3D panel (no fullscreen: browsers require a click for that).
     await enterPresent({ fullscreen: false });
   } else if (shared || tourIn3d) {

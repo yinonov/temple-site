@@ -76,6 +76,8 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
   phone?.addEventListener?.("change", syncTier);
   syncTier();
   const materialChip = h("p", { class: "present-chip present-material", id: "present-material", text: s.materialChip });
+  // ADR-005 D5: in live mode a second chip says that motion, figures, durations and light are illustration. Never hidden there.
+  const motionChip = h("p", { class: "present-chip present-material present-motion", id: "present-motion", text: strings.live.motionChip, hidden: true });
 
   // popovers: alternatives, legend, pieces
   function popover({ id, title, trigger, body }) {
@@ -112,6 +114,11 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
   const legendBody = h("div", { class: "present-legend-body" },
     h("p", { class: "present-material-explain", id: "present-material-explain", text: s.materialExplain }),
     h("p", { class: "present-markers-explain", id: "present-markers-explain" }, h("strong", { text: `${s.markersLegendTitle}: ` }), s.markersLegend),
+    h("div", { class: "present-live-legend", id: "present-live-legend", hidden: true },
+      h("p", {}, h("strong", { text: `${strings.live.legendTitle}: ` }), strings.live.legend),
+      h("p", { text: strings.live.figuresLegend }), h("p", { text: strings.live.lightLegend }), h("p", { text: strings.live.durationNote }),
+      h("p", { text: strings.live.orderLegend }), h("p", { text: strings.live.conditionalLegend }),
+      h("p", { class: "small", text: strings.live.walkHint })),
     h("p", { class: "present-key-help small muted", text: s.keyHelp }),
     // R-06: the licences dialog is reachable without leaving the presentation (it opens inside the overlay, on top).
     h("p", { class: "present-legend-footer" }, h("button", { type: "button", id: "present-licences", class: "present-btn", "aria-haspopup": "dialog",
@@ -126,7 +133,10 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
     h("h2", { class: "present-idle-title", text: s.startTitle }),
     idleBody,
     h("p", { class: "present-explore", text: s.startExplore }),
-    h("p", { class: "present-idle-actions" }, startButton));
+    h("p", { class: "present-idle-actions" }, startButton,
+      h("button", { type: "button", id: "present-back-live", class: "present-btn", text: s.backToLive, hidden: !hooks.onLive, on: { click: () => hooks.onLive?.() } })));
+  // M6 live mode (ADR-005): the live HUD (built by live.js) takes the place of the idle and tour cards.
+  const liveSlot = h("div", { class: "present-live", id: "present-live", hidden: true });
 
   const stepLabel = h("p", { class: "present-step", id: "present-step" });
   // TASK-6-77: the chapter ("משנה תמיד ד") beside the step, and a compact chapter picker (native select: keyboard and phone friendly).
@@ -170,18 +180,18 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
     activeMain,
     h("div", { class: "present-tour-controls", role: "group", "aria-label": st.controlsLabel }, prevButton, nextButton, detailsButton),
     progress);
-  const bottom = h("section", { class: "present-bottom", id: "present-bottom", "aria-label": st.barLabel }, idleCard, activeCard);
+  const bottom = h("section", { class: "present-bottom", id: "present-bottom", "aria-label": st.barLabel }, idleCard, activeCard, liveSlot);
 
   const actions = h("div", { class: "present-actions", role: "group", "aria-label": s.regionLabel }, certaintyButton, altButton, legendButton, piecesButton, fullscreenButton, exitButton);
   const top = h("header", { class: "present-top" },
     h("div", { class: "present-top-row" }, brand, actions),
-    h("div", { class: "present-top-row present-chips" }, previewStrip, tierBadge, materialChip),
+    h("div", { class: "present-top-row present-chips" }, previewStrip, tierBadge, materialChip, motionChip),
     altPop.panel, legendPop.panel, piecesPop.panel);
   const top_rows = () => top.querySelectorAll(".present-top-row");
   const hud = h("div", { class: "present-hud" }, top, bottom);
 
   function buildRoot() {
-    root = h("div", { id: "present", class: "present", role: "region", "aria-label": s.regionLabel, "data-style-mode": styleMode, "data-tour": "idle", dir: "rtl" }, hud, stage, status, live);
+    root = h("div", { id: "present", class: "present", role: "region", "aria-label": s.regionLabel, "data-style-mode": styleMode, "data-tour": "idle", "data-live": "false", dir: "rtl" }, hud, stage, status, live);
     stage.addEventListener("pointerdown", () => { for (const item of openPopovers()) closePopover(item); });
     return root;
   }
@@ -342,6 +352,19 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
       saved = null;
     },
     markReady() { if (root) root.dataset.ready = "true"; },
+    /** Live mode on (with the HUD node from live.js) or off (null): swaps the bottom card and shows the motion chip. */
+    setLive(node) {
+      const on = Boolean(node);
+      liveSlot.replaceChildren(...(on ? [node] : []));
+      liveSlot.hidden = !on;
+      motionChip.hidden = !on;
+      legendBody.querySelector("#present-live-legend").hidden = !on;
+      legendBody.querySelector("#present-markers-explain").hidden = on; // the M4 marker text does not describe moving figures
+      if (on) { idleCard.hidden = true; activeCard.hidden = true; }
+      else if (root?.dataset.tour !== "active") idleCard.hidden = false;
+      if (root) { root.dataset.live = String(on); root.setAttribute("aria-label", on ? strings.live.regionLabel : s.regionLabel); }
+    },
+    isLive: () => !liveSlot.hidden,
     setStyle,
     setStatus(text) { status.hidden = !text; status.textContent = text ?? ""; },
     /** Adopt renderer-owned nodes (legend, piece list) into the popovers so they never cover the canvas. */
@@ -373,8 +396,9 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
       const active = Boolean(model);
       if (!root) return;
       root.dataset.tour = active ? "active" : "idle";
-      idleCard.hidden = active;
-      activeCard.hidden = !active;
+      const liveOn = !liveSlot.hidden;
+      idleCard.hidden = active || liveOn;
+      activeCard.hidden = !active || liveOn;
       if (!active) { lastIndex = null; return; }
       stepLabel.textContent = format(st.indicator, { n: model.index + 1, total: model.total });
       chapterText.textContent = model.chapterTitle ?? "";
@@ -427,7 +451,7 @@ export function createPresentation({ strings, dialogs, assumptions, conflicts, h
       const bottomBox = bottom.getBoundingClientRect();
       return { top: Math.max(0, Math.round(topBox.bottom - 24)), bottom: Math.max(0, Math.round(height - bottomBox.top + 8)) };
     },
-    focusStart() { (activeCard.hidden ? startButton : nextButton).focus({ preventScroll: true }); },
+    focusStart() { if (!liveSlot.hidden) return; (activeCard.hidden ? startButton : nextButton).focus({ preventScroll: true }); },
     focusStop() { stopTitle.focus({ preventScroll: true }); },
     /** Pixels of the stage covered by the HUD at the top and the bottom (marker labels keep clear of them). */
     hudInsets() {

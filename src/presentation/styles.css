@@ -545,7 +545,7 @@ body.is-presenting { overflow: hidden; }
   .present-actions .present-exit { order: 1; flex: 0 0 auto; }
   .present-actions .present-btn:not(.present-exit) { order: 2; flex: 1 1 0; }
   .present-top-row { gap: 8px; }
-  .present-tier { flex: 1 1 0; }
+  .present-tier { flex: 1 1 0; min-width: min(100%, 18rem); } /* M6: with the motion chip beside it the row wraps instead of crushing the badge */
 }
 @media (max-width: 600px) {
   .present-top { gap: 6px; padding: 8px 10px 18px; }
@@ -563,7 +563,7 @@ body.is-presenting { overflow: hidden; }
   #present-fullscreen { display: none; }
   .present-chips { gap: 6px; }
   .present-chip { padding: 2px 10px; font-size: 13px; }
-  .present-tier { flex: 0 1 auto; }
+  .present-tier { flex: 0 1 auto; min-width: 0; }
   .present-tier-chip { font-size: 13px; cursor: pointer; }
   .present-tier-chip::after { content: " ?"; }
   .present-tier-text { display: none; }
@@ -650,3 +650,63 @@ body.is-presenting { overflow: hidden; }
 .sequence-evidence { margin: 12px 0; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
 .sequence-evidence > summary { cursor: pointer; font-weight: 600; min-height: 32px; }
 .sequence-evidence[open] > summary { margin-bottom: 10px; }
+
+/* ---- M6 live mode (ADR-005): the morning plays; the HUD stays small and the labels stay in the background ---- */
+.present[data-live="true"] .present-bottom { width: min(760px, calc(100% - 2 * clamp(10px, 2vw, 24px))); padding: 10px 14px 8px; border-radius: 16px; background: rgb(12 17 23 / 78%); }
+.present-motion { border-style: dashed; }
+.live-hud { display: grid; gap: 6px; }
+.live-hud > * { margin: 0; }
+.live-row { display: flex; align-items: center; gap: 8px; }
+.live-transport .live-play { flex: none; min-width: 7.5em; white-space: nowrap; }
+.live-scrub { flex: 1 1 auto; min-width: 0; height: 44px; accent-color: var(--brass); }
+.live-speed, .live-persona { flex: none; width: auto; min-width: 0; min-height: 44px; border: 1px solid var(--hud-line); border-radius: 12px; padding: 4px 10px; color: var(--ink); background: var(--hud-bg); font: inherit; font-size: 15px; }
+.live-persona { max-width: 13em; }
+.live-now { display: flex; gap: 8px; align-items: baseline; min-width: 0; font-size: 15px; line-height: 1.35; }
+.live-pos { flex: none; color: var(--brass); font-weight: 700; font-variant-numeric: tabular-nums; }
+.live-step { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.live-tools { flex-wrap: wrap; }
+.live-tools .present-btn { min-height: 44px; padding: 6px 14px; font-size: 15px; }
+.live-gate { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border: 1px solid var(--amber); border-radius: 12px; padding: 6px 10px; color: var(--amber); background: rgb(244 185 66 / 10%); font-size: 15px; }
+.live-gate .present-btn { min-height: 40px; padding: 4px 12px; font-size: 14px; }
+.live-info { color: var(--muted); font-size: 14px; }
+.live-bubbles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.live-bubble { position: absolute; left: 0; top: 0; display: grid; gap: 2px; max-width: min(19rem, 70vw); border: 1px solid rgb(236 230 217 / 22%); border-radius: 10px; padding: 5px 9px; color: var(--ink); background: rgb(12 17 23 / 72%); font: inherit; font-size: 13px; line-height: 1.3; text-align: start; pointer-events: auto; cursor: pointer; backdrop-filter: blur(6px); transition: opacity .25s linear; will-change: transform; }
+.live-bubble:hover, .live-bubble:focus-visible { border-color: var(--brass); background: rgb(12 17 23 / 90%); }
+.live-bubble[data-placed="false"] { border-style: dashed; }
+.live-bubble-line { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-bubble-meta { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; color: var(--muted); white-space: normal; }
+.live-bubble-chip { display: inline-block; border: 1px solid var(--hud-line); border-radius: 999px; padding: 0 7px; font-size: 12px; }
+.live-bubble-conditional { border-color: var(--amber); color: var(--amber); }
+.live-bubble-note { color: var(--muted); font-size: 12px; }
+.present-live-legend p { margin: .4rem 0; }
+@media (max-width: 600px) {
+  .present[data-live="true"] .present-bottom { padding: 8px 10px 6px; margin-bottom: 8px; }
+  .live-transport .live-play { min-width: 0; padding: 6px 12px; font-size: 15px; }
+  .live-tools { flex-wrap: wrap; } /* L-09: persona and tour stay reachable without a hidden scroll */
+  .live-tools .present-btn, .live-tools select { min-height: 40px; padding: 4px 10px; font-size: 14px; }
+  .live-bubble { max-width: 62vw; font-size: 12px; }
+  .live-step { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .live-bubble { transition: none; } }
+/* M6 amendments (TASK-6-161): disclosures on the HUD itself, notes, intro line */
+.live-chip-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.live-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; min-width: 0; flex: 1 1 auto; }
+.live-chip { display: inline-block; border: 1px solid var(--hud-line); border-radius: 999px; padding: 1px 9px; color: var(--ink); background: rgb(255 255 255 / 6%); font-size: 13px; line-height: 1.5; }
+.live-chip.live-conditional, .live-chip.live-alt { border-color: var(--amber); color: var(--amber); font-weight: 700; }
+.live-day { flex: none; color: var(--muted); }
+.live-chip-btn { flex: none; min-height: 32px; border: 1px solid var(--hud-line); border-radius: 999px; padding: 2px 12px; color: var(--ink); background: var(--hud-bg); font: inherit; font-size: 13px; cursor: pointer; }
+.live-chip-btn:hover, .live-chip-btn:focus-visible { border-color: var(--brass); }
+.live-notes { color: var(--muted); font-size: 13px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.live-notes[data-open="true"] { display: block; -webkit-line-clamp: none; }
+.live-intro { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid var(--hud-line); padding-bottom: 6px; font-size: 14px; line-height: 1.4; }
+.live-intro[hidden] { display: none; }
+@media (max-width: 600px) {
+  /* TASK-6-169 L-03: every disclosure stays on screen on a phone (no horizontal scroll, the day chip shown) */
+  .live-chip-row { flex-wrap: wrap; }
+  .live-chip { font-size: 12px; padding: 0 7px; }
+  .live-intro { font-size: 13px; }
+}
+/* L-03: the conditional sentence is never clamped; the other notes have a real toggle button */
+.live-cond-note { margin: 0; border-inline-start: 3px solid var(--amber); padding-inline-start: 8px; color: var(--amber); font-size: 13px; line-height: 1.4; }
+.live-notes-row { display: flex; align-items: flex-start; gap: 6px; }
+.live-notes-row .live-notes { flex: 1 1 auto; margin: 0; cursor: default; }

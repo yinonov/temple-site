@@ -3,7 +3,10 @@
 //   (options also: columnBudget — most columns drawn per portico; default by viewport, see geometry/portico-lod.js)
 //   → { update(solved), setSelected(ref|null), setMode("overview"|"walk"), getMode(), setFraming("focus"|"all"), setViewAngle("oblique"|"plan"),
 //       getFraming(), flyTo(ids, { animate }), setLabelNote(text|null), focusFirst(), info(), destroy(),
-//       setStyleMode("certainty"|"presentation"), getStyleMode(), setMarkers(descriptors, { pieceId|pieceIds }), clearMarkers() }
+//       setStyleMode("certainty"|"presentation"), getStyleMode(), setMarkers(descriptors, { pieceId|pieceIds }), clearMarkers(),
+//       setLive(handler|null), wake(), liveContext(), setWalkGuard(fn|null), walkPose(), setWalkPose(pose) }
+//   Live mode (ADR-005 D6): while a live handler is set the renderer runs a continuous frame loop (paused while the tab is
+//   hidden); handler.onFrame(dtMs, nowMs) returns false to let the loop idle. Other modes keep render-on-demand.
 //   (options also: styleMode — "certainty" (default, the M1–M3 look) | "presentation" (ADR-004: stone tones, sky, edge-pattern
 //   certainty cue); fill — true makes the viewport fill its container instead of using --scene3d-height)
 //
@@ -191,7 +194,8 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
 
   // ---------- three.js scene ----------
   // Pixel ratio: min(dpr, 2), or min(dpr, 1.5) in a narrow container (< 600 px) to keep phones smooth (TASK-6-56).
-  const ratioFor = (width) => Math.min(window.devicePixelRatio || 1, width > 0 && width < 600 ? 1.5 : 2);
+  let liveHandler = null; // ADR-005: continuous loop owner (live mode)
+  const ratioFor = (width) => Math.min(window.devicePixelRatio || 1, liveHandler ? (width > 0 && width < 600 ? 1.25 : 1.5) : (width > 0 && width < 600 ? 1.5 : 2));
   let pixelRatio = ratioFor(container.clientWidth || window.innerWidth || 0);
   renderer.setPixelRatio(pixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -399,7 +403,26 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
   let pendingFit = false;
   const overviewView = { position: new THREE.Vector3(), target: new THREE.Vector3() };
   const walk = { position: new THREE.Vector3(), yaw: 0, pitch: 0, keys: new Set(), stick: null, lastTime: null };
+  let walkGuard = null;
 
+  const frameTimes = []; // live mode: recent frame intervals (ms) for the frame-time readout
+  let lastFrameAt = null;
+  let frameCounter = 0;
+  function recordFrame(now) {
+    if (lastFrameAt !== null) {
+      const dt = now - lastFrameAt;
+      if (dt > 0 && dt < 5000) { frameTimes.push(dt); if (frameTimes.length > 120) frameTimes.shift(); }
+    }
+    lastFrameAt = now;
+    if (++frameCounter % 10 === 0 && frameTimes.length >= 5) {
+      const sorted = [...frameTimes].sort((a, b) => a - b);
+      root.setAttribute("data-frame-ms", sorted[Math.floor(sorted.length / 2)].toFixed(1));
+      root.setAttribute("data-frame-p95", sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))].toFixed(1));
+      // Load-independent cost of the last frame (ADR-003 D6 budget: ≤ 150 draw calls, ≤ 50k triangles).
+      root.setAttribute("data-draw-calls", String(renderer.info.render.calls));
+      root.setAttribute("data-triangles", String(renderer.info.render.triangles));
+    }
+  }
   function render() {
     frame = 0;
     if (destroyed) return;
@@ -407,6 +430,15 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
     if (flight) keepGoing = stepFlight();
     else if (mode === "overview" && controls.enableDamping) keepGoing = controls.update();
     if (mode === "walk") keepGoing = stepWalk();
+    if (liveHandler && !document.hidden) {
+      const now = performance.now();
+      const dt = lastFrameAt === null ? 16.7 : now - lastFrameAt;
+      recordFrame(now);
+      let more = false;
+      try { more = liveHandler.onFrame(dt, now) !== false; } catch (error) { console.error("live frame failed", error); }
+      keepGoing = keepGoing || more;
+      if (!keepGoing) lastFrameAt = null;
+    }
     if (sky.visible) sky.followCamera(camera);
     markers.fit(camera);
     renderer.render(scene, camera);
@@ -873,6 +905,7 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
     walk.position.y = floorAt(walk.position.x, walk.position.z) + EYE_HEIGHT_METRES;
     camera.position.copy(walk.position);
     camera.rotation.set(walk.pitch, walk.yaw, 0, "YXZ");
+    root.setAttribute("data-walk", `${walk.position.x.toFixed(1)},${walk.position.z.toFixed(1)},${walk.yaw.toFixed(2)}`);
     camera.near = 0.05;
     camera.far = Math.max(extent * 10, 100);
     camera.updateProjectionMatrix();
@@ -900,8 +933,12 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
     walk.yaw += turn * 1.6 * dt;
     const sin = Math.sin(walk.yaw);
     const cos = Math.cos(walk.yaw);
-    walk.position.x += (-sin * forward + cos * strafe) * speed * dt;
-    walk.position.z += (-cos * forward - sin * strafe) * speed * dt;
+    const from = { x: walk.position.x, z: walk.position.z };
+    const to = { x: from.x + (-sin * forward + cos * strafe) * speed * dt, z: from.z + (-cos * forward - sin * strafe) * speed * dt };
+    // ADR-005 D6: a persona gate may refuse the step (the guard reports why; the walker stays where it was).
+    let allowed = true;
+    if (walkGuard) { try { allowed = walkGuard(from, to) !== false; } catch (error) { console.error("walk guard failed", error); } }
+    if (allowed) { walk.position.x = to.x; walk.position.z = to.z; }
     placeWalkCamera();
     return true;
   }
@@ -1109,6 +1146,8 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
     sky.visible = presentation;
     if (presentation) {
       scene.background = new THREE.Color(PRESENTATION_ENVIRONMENT.skyHorizon);
+      sky.material.uniforms.uZenith.value.set(PRESENTATION_ENVIRONMENT.skyZenith);
+      sky.material.uniforms.uHorizon.value.set(PRESENTATION_ENVIRONMENT.skyHorizon);
       hemisphere.color.set(PRESENTATION_ENVIRONMENT.hemisphereSky);
       hemisphere.groundColor.set(PRESENTATION_ENVIRONMENT.hemisphereGround);
       hemisphere.intensity = PRESENTATION_ENVIRONMENT.hemisphereIntensity;
@@ -1176,9 +1215,40 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
     return true;
   }
 
+  // ---------- live mode (ADR-005) ----------
+  function onVisibility() { if (!document.hidden && liveHandler) { lastFrameAt = null; requestRender(); } }
+  document.addEventListener("visibilitychange", onVisibility);
+  /** Start (handler) or stop (null) the continuous live loop. handler = { onFrame(dtMs, nowMs) → boolean }. */
+  function setLive(handler) {
+    const was = Boolean(liveHandler);
+    liveHandler = handler && typeof handler.onFrame === "function" ? handler : null;
+    root.setAttribute("data-live", String(Boolean(liveHandler)));
+    lastFrameAt = null;
+    frameTimes.length = 0;
+    if (was !== Boolean(liveHandler)) resize(); // pixel-ratio cap differs in live mode
+    requestRender();
+  }
+  /** Wake the live loop (after a seek or a play) when it idled. */
+  function wake() { requestRender(); }
+  /** What a live layer needs to draw into this scene. */
+  function liveContext() { return { THREE, scene, camera, viewport, pieces, renderer, root }; }
+  function setWalkGuard(fn) { walkGuard = typeof fn === "function" ? fn : null; }
+  function walkPose() { return { x: walk.position.x, y: walk.position.y, z: walk.position.z, yaw: walk.yaw, pitch: walk.pitch }; }
+  /** Put the walker at {x, z} facing yaw (radians, 0 = north/-z). Switches to walk mode if needed. */
+  function setWalkPose({ x, z, yaw = walk.yaw, pitch = 0 } = {}) {
+    if (mode !== "walk") setMode("walk");
+    if (Number.isFinite(x)) walk.position.x = x;
+    if (Number.isFinite(z)) walk.position.z = z;
+    walk.yaw = Number.isFinite(yaw) ? yaw : walk.yaw;
+    walk.pitch = Number.isFinite(pitch) ? pitch : 0;
+    placeWalkCamera();
+    requestRender();
+  }
   function destroy() {
     if (destroyed) return;
     destroyed = true;
+    liveHandler = null;
+    document.removeEventListener("visibilitychange", onVisibility);
     if (frame) cancelAnimationFrame(frame);
     resizeObserver?.disconnect();
     canvas.removeEventListener("pointerdown", onPointerDown);
@@ -1218,7 +1288,8 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
   function info() {
     return { mode, framing, viewAngle, styleMode, pixelRatio, boundsInView: boundsInView(), pieceCount: pieces.length, selected: [...selectedIds].sort(), focused: pieces[focusIndex]?.id ?? null,
       overlay: overlay.style.display === "block" ? overlay.textContent : null,
-      drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
+      drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles, live: Boolean(liveHandler),
+      walk: mode === "walk" ? walkPose() : null,
       columnBudget: budget,
       porticos: [...entries.values()].filter((entry) => entry.lod).map((entry) => ({ id: entry.piece.id, drawn: entry.lod.drawn, total: entry.lod.total, thinned: entry.lod.thinned })) };
   }
@@ -1229,5 +1300,6 @@ export function mountThreeScene(container, { onSelect = () => {}, labelFor = () 
   update(null);
   empty.style.display = "flex";
   publishCamera();
-  return { update, setAccess, setSelected, setMode, getMode: () => mode, setFraming, getFraming: () => framing, setViewAngle, getViewAngle: () => viewAngle, flyTo, showOverview, setInsets, setShortLabels, setLabelNote, focusFirst, info, destroy, setStyleMode, getStyleMode: () => styleMode, setMarkers, clearMarkers };
+  return { update, setAccess, setSelected, setMode, getMode: () => mode, setFraming, getFraming: () => framing, setViewAngle, getViewAngle: () => viewAngle, flyTo, showOverview, setInsets, setShortLabels, setLabelNote, focusFirst, info, destroy, setStyleMode, getStyleMode: () => styleMode, setMarkers, clearMarkers,
+    setLive, wake, liveContext, setWalkGuard, walkPose, setWalkPose };
 }
