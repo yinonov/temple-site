@@ -5,8 +5,9 @@ import { ID_PATTERN, ID_PREFIXES, at, collector, isObject, join, rootNotObject }
 export const ACCESS_POLICY_SCHEMA_VERSION = 1;
 export const ACCESS_DEFAULTS = Object.freeze(new Set(["unknown"]));
 export const ACCESS_EFFECTS = Object.freeze(new Set(["allow", "deny"]));
-/** Condition keys allowed in v1; values are opaque non-empty string tokens. */
-export const ACCESS_CONDITION_KEYS = Object.freeze(new Set(["purity", "timing"]));
+/** Condition keys allowed in v1; values are opaque non-empty string tokens. `purpose` (TASK-6-180): a rite or need the
+ * source names as an exception, e.g. Kelim 1:8 "except at the time of their needs". */
+export const ACCESS_CONDITION_KEYS = Object.freeze(new Set(["purity", "purpose", "timing"]));
 
 /**
  * Validate one access policy record.

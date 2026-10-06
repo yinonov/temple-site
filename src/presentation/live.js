@@ -57,6 +57,20 @@ export function exceptionsFor(world, roleId) {
   return out;
 }
 
+/** TASK-6-180: the Hebrew claim of the first evidence record behind the given conditional rule ids, or "". */
+export function conditionalClaim(world, ruleIds) {
+  const ids = new Set(ruleIds);
+  const evidence = new Map((world?.evidence ?? []).map((record) => [record.id, record]));
+  for (const policy of world?.accessPolicies ?? []) {
+    for (const rule of policy.rules ?? []) {
+      if (!ids.has(rule.id)) continue;
+      const claim = (rule.evidenceIds ?? []).map((id) => evidence.get(id)?.claim).find(Boolean);
+      if (claim) return he(claim);
+    }
+  }
+  return "";
+}
+
 /**
  * Is the step one the records describe only under a condition (A-02), so that it is not performed by default?
  * TASK-6-169 L-02: a Shabbat variant (the same daily step, with a different wording on Shabbat) and a partial mark (part of
@@ -424,8 +438,11 @@ export function createLive({ world, strings, tour, sequenceOrder, reducedMotion 
   function showGate(result) {
     const persona = hooks.personaOptions().find((option) => option.id === hooks.state().persona);
     const template = { forbidden: s.gateBlocked, inside: s.gateInside, exception: s.gateException }[result.reason] ?? s.gateConditional;
-    gateText.textContent = format(template, { place: placeName(result.locationId), persona: persona?.shortLabel ?? "", exception: isolateLatin(result.exception ?? "") });
     const entry = accessibleAreas(hooks.state().persona, world).pieces.find((piece) => piece.pieceId === result.pieceId);
+    // TASK-6-180: a conditional rule (e.g. Kelim 1:8's purpose exception) shows its own evidence claim, as data.
+    const stated = result.reason === "conditional" ? conditionalClaim(world, entry?.conditionalRuleIds ?? []) : "";
+    gateText.textContent = format(template, { place: placeName(result.locationId), persona: persona?.shortLabel ?? "", exception: isolateLatin(result.exception ?? "") })
+      + (stated ? ` ${isolateLatin(stated)}` : "");
     const ruleId = (entry?.ruleIds ?? [])[0] ?? (entry?.conditionalRuleIds ?? [])[0] ?? null;
     gateEvidence.hidden = !ruleId;
     gateEvidence.onclick = ruleId ? (event) => hooks.openRule(ruleId, event.currentTarget) : null;

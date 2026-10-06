@@ -47,7 +47,7 @@ function decide(personaId, locationId, policies, evidenceById) {
   for (const policy of mine) for (const rule of list(policy.rules)) if (rule.roleId === personaId) matching.push({ policy, rule });
   const decisive = matching.filter(({ rule }) => !hasConditions(rule) && (rule.effect === "allow" || rule.effect === "deny"));
   const effects = new Set(decisive.map(({ rule }) => rule.effect));
-  // A rule with conditions (purity/timing) cannot be evaluated here: it never decides. Contradictory unconditional
+  // A rule with conditions (purity/purpose/timing) cannot be evaluated here: it never decides. Contradictory unconditional
   // rules are not resolved by picking one.
   const status = effects.size !== 1 ? ACCESS_STATUS.NO_SOURCE : effects.has("allow") ? ACCESS_STATUS.ALLOWED : ACCESS_STATUS.FORBIDDEN;
   const governing = status === ACCESS_STATUS.NO_SOURCE ? [] : decisive;

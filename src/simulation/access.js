@@ -1,7 +1,7 @@
 // Access evaluator. Contract: docs/contracts/world-data.md "Access policy v1" and rule 5; world-state.md.
 // Pure ESM. Absent an applicable rule the answer is "unknown" — never allow/deny by assumption.
 //
-// Condition tokens (`purity`, `timing`) have no approved vocabulary yet, so a rule that carries any condition
+// Condition tokens (`purity`, `purpose`, `timing`) have no approved vocabulary yet, so a rule that carries any condition
 // cannot be evaluated and contributes "unknown" (CONDITION_NOT_EVALUABLE) instead of being assumed to hold.
 
 export const ACCESS_REASONS = Object.freeze({
