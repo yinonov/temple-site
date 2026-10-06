@@ -82,6 +82,21 @@ export function conditionalOf(event) {
   return { kind, partial };
 }
 
+/**
+ * Shabbat variants (TASK-6-97/99). Mishnah Tamid describes one order and names Shabbat differences inside it (2:5; 5:1;
+ * 5:5; 7:4). An event carrying one opens its applicability note (or title) with "בשבת:"; that is the same step on
+ * Shabbat, not a separate or conditional step. `detail` is the variant clause up to the first ";".
+ * @returns {{ kind: "shabbatVariant", partial: false, detail: string } | null}
+ */
+export function shabbatVariantOf(event) {
+  const title = he(event?.title) ?? "";
+  const note = he(event?.applicability?.note) ?? "";
+  if (!/^בשבת:/u.test(note) && !/^בשבת:/u.test(title)) return null;
+  const source = /^בשבת:/u.test(note) ? note : title;
+  const detail = source.replace(/^בשבת:\s*/u, "").split(/[;؛]/u)[0].trim();
+  return { kind: "shabbatVariant", partial: false, detail };
+}
+
 const HIGH_PRIEST_ROLE = "role-kohen-gadol";
 const HP_NAME = /כהן (?:ה)?גדול/u;
 /**
@@ -151,7 +166,7 @@ export function buildTourStops({ world, sequenceIds = null }) {
         continuation: position === 0 && previous ? { sequenceName: he(sequence.name), previousSequenceName: previous.name, note: he(sequence.orderNote) } : null,
         startStep: event.timing.startStep, endStep: event.timing.endStep, title: he(event.title),
         locationId: event.locationId ?? null, locationBasis: event.locationBasis ?? null, inferred: event.locationBasis === "inferred",
-        evidenceLocator, locator: parseLocator(evidenceLocator), conditional: conditionalOf(event) ?? highPriestOf(event),
+        evidenceLocator, locator: parseLocator(evidenceLocator), conditional: conditionalOf(event) ?? shabbatVariantOf(event) ?? highPriestOf(event),
         pieces: own, placed: own.length > 0
       });
     });
@@ -229,7 +244,7 @@ function summariseLocators(stops, world = null) {
     complete: Boolean(end && last.chapter === end.chapter && last.mishnah === end.mishnah) } };
 }
 
-const COND_NAMES = Object.freeze({ highPriest: "HighPriest", highPriestDescribed: "HighPriestDescribed", shabbat: "Shabbat", other: "Other" });
+const COND_NAMES = Object.freeze({ highPriest: "HighPriest", highPriestDescribed: "HighPriestDescribed", shabbat: "Shabbat", shabbatVariant: "ShabbatVariant", other: "Other" });
 /** Chip text for a conditional step ("מותנה: כהן גדול"); `s` = strings.tour. */
 export function conditionalLabel(conditional, s) {
   return conditional ? s[`conditional${COND_NAMES[conditional.kind] ?? "Other"}${conditional.partial ? "Partial" : ""}`] : "";
@@ -237,6 +252,7 @@ export function conditionalLabel(conditional, s) {
 /** One-line note for a conditional step; `s` = strings.tour. */
 export function conditionalNote(conditional, s) {
   if (conditional?.participant) return s.conditionalNoteHighPriestParticipant;
+  if (conditional?.kind === "shabbatVariant") return s.conditionalNoteShabbatVariant.replace("{detail}", conditional.detail || "");
   return conditional ? s[`conditionalNote${conditional.partial ? "Partial" : ""}${COND_NAMES[conditional.kind] ?? "Other"}`] : "";
 }
 

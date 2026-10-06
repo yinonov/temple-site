@@ -586,6 +586,8 @@ body.is-presenting { overflow: hidden; }
   .present-stop-title { margin: 0; }
   .present-tour-main[data-expanded="false"] .present-stop-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.2; }
   .present-tour-main, .present-meta { min-width: 0; }
+  /* The end card's text is never clamped; the card scrolls instead, so the 3D keeps its share of the screen. */
+  .present-tour-main { max-height: 38vh; overflow-y: auto; overscroll-behavior: contain; }
   .present-meta { gap: 2px 8px; flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
   .present-tour-main[data-expanded="false"] .present-attribution { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* T-04: the chips wrap on a phone (no hidden horizontal scroller), so the location chip, the "not drawn in the model" note and
