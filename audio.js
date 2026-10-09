@@ -2,7 +2,8 @@
 // What is heard (and from where) comes from `world/soundscape.js`; this file only renders it. Sources sit in space
 // through equal-power panners (cheap enough for phones); distance is already in each level, so panners only turn.
 export function createAudio() {
-  let ctx = null, master, mix, sfx, amb, mus, bus, noiseBuf, beds = null, duck = 1, meter = null, listened = null, muted = false;
+  let ctx = null, master, mix, sfx, amb, mus, bus, noiseBuf, beds = null, duck = 1, meter = null, listened = null, muted = false, spoken = 0;
+  const clips = new Map(); // url -> Promise<AudioBuffer | null>, so each clip is fetched and decoded once
   const noise = () => { const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true; return s; };
   function env(node, t, peak, attack, release) {
     const g = ctx.createGain();
@@ -298,6 +299,21 @@ export function createAudio() {
           into(g, "pop");
         }
       }
+    },
+    /** How many spoken clips have started (for tests). */
+    get spoken() { return spoken; },
+    /** Say a recorded line (made at authoring time, see scripts/voices.js) from where the speaker stands. */
+    async speak(url, { pos, level = 1, rate = 1 } = {}) {
+      if (!ctx || ctx.state !== "running") return;
+      if (!clips.has(url)) clips.set(url, fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => (b ? ctx.decodeAudioData(b) : null)).catch(() => null));
+      const buffer = await clips.get(url);
+      if (!buffer || ctx.state !== "running") return;
+      const src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = buffer; src.playbackRate.value = rate; g.gain.value = 0.9 * level;
+      src.connect(g);
+      (pos ? g.connect(panner(pos)) : g).connect(mix);
+      src.start();
+      spoken += 1;
     },
     /** Sound the notes of the song that fall due (`delay` seconds ahead of now). */
     note(ev, delay = 0) { if (ctx && ctx.state === "running") note(ev, delay); },

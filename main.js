@@ -135,6 +135,11 @@ function tap(sx, sy) {
   } else if (Math.hypot(spot[0] - walker.me.x, spot[1] - walker.me.z) < 90) target = { x: spot[0], z: spot[1], from: [walker.me.x, walker.me.z], since: performance.now(), t0: performance.now() };
 }
 
+// Spoken lines: clips made at authoring time (scripts/voices.js); the manifest is empty until there are any.
+let voiceLines = {};
+fetch("./content/voices.json").then((r) => (r.ok ? r.json() : null)).then((m) => { voiceLines = m?.lines ?? {}; }).catch(() => {});
+const idHash = (id) => [...id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 97, 7) / 97; // a fixed little variety per speaker
+
 // Speech bubbles, pooled.
 const bubbles = new Map();
 function showSpeech(w) {
@@ -153,6 +158,12 @@ function showSpeech(w) {
       b.innerHTML = '<span class="said" lang="he" dir="rtl"></span><span class="gloss"></span>';
       $("bubbles").append(b);
       bubbles.set(p.id, b);
+    }
+    if (b.line !== p.say.he) { b.line = p.say.he; b.born = performance.now(); b.spoken = false; }
+    // Voiced as the line begins (not minutes in), from where the speaker stands, unless quiet mode is on.
+    if (!b.spoken && voiceLines[p.say.he] && performance.now() - b.born < 6000 && audio.state === "running") {
+      b.spoken = true;
+      audio.speak(`./content/${voiceLines[p.say.he]}`, { pos: [p.pos[0], p.pos[1] + 1.6, p.pos[2]], level: Math.max(0.2, 1 - d / 45), rate: 0.94 + 0.12 * idHash(p.id) });
     }
     b.firstChild.textContent = p.say.he;
     b.lastChild.textContent = p.say.gloss[lang];
@@ -315,7 +326,7 @@ window.__temple = {
     visible: world ? Object.values(world.people).filter((p) => p.visible).length : 0,
     moving: world ? Object.values(world.people).filter((p) => p.visible && p.moving).length : 0,
     routines: world?.routines.map((r) => r.id) ?? [], bubbles: [...bubbles.keys()], note: lastNote,
-    flight: flight ? Number(flight.s.toFixed(1)) : null, offered: offered !== null, camera: scene.camera.position.toArray().map((v) => Number(v.toFixed(2))), shabbat: world?.calendar.shabbat, audio: audio.state, muted: audio.muted, walking: target !== null, pinned: pinned?.note.id ?? null, loudness: Number(audio.level.toFixed(4)), sound: heard?.scape.summary ?? null,
+    flight: flight ? Number(flight.s.toFixed(1)) : null, offered: offered !== null, camera: scene.camera.position.toArray().map((v) => Number(v.toFixed(2))), shabbat: world?.calendar.shabbat, audio: audio.state, muted: audio.muted, spoken: audio.spoken, walking: target !== null, pinned: pinned?.note.id ?? null, loudness: Number(audio.level.toFixed(4)), sound: heard?.scape.summary ?? null,
     draws: scene.info().calls, inView: inView(),
   }),
   place: (x, z, yaw) => walker.place(x, z, yaw),
