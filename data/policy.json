@@ -1,5 +1,0 @@
-{
-  "schemaVersion": 1,
-  "publication": "automated_challenge",
-  "note": "STRATEGY-2026-10 §3 / ADR-002. Switched to automated_challenge on 2026-10-04: records with verified quotes and a current independent Skeptic challenge publish as provisional. Set back to human_decision to require human approval again."
-}

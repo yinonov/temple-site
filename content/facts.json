@@ -1,0 +1,727 @@
+{
+ "note": "Every fact the experience states. Quotes are Hebrew from the public-domain Vilna 1913 Mishnah vendored in research/texts/, checked by `npm run check:facts`. English claims are our own wording.",
+ "facts": [
+  {
+   "id": "tamid-1-4-firelight",
+   "claim": "The priest who clears the altar goes in alone, with no lamp, walking by the light of the altar fire.",
+   "locator": "Mishnah Tamid 1:4",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "1:4",
+   "quotes": [
+    "אין אדם נכנס עמו. ולא נר בידו. אלא מהלך לאור המערכה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.1.4?lang=he"
+  },
+  {
+   "id": "tamid-1-4-wheel",
+   "claim": "The others neither saw nor heard him until they heard the wooden wheel Ben Katin made for the laver, and said: the time has come.",
+   "locator": "Mishnah Tamid 1:4",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "1:4",
+   "quotes": [
+    "לא היו רואין אותו. ולא שומעין את קולו. עד ששומעין קול העץ. שעשה בן קטין מוכני לכיור. והן אומרים הגיע עת"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.1.4?lang=he"
+  },
+  {
+   "id": "tamid-1-4-climb",
+   "claim": "He washed hands and feet at the laver, took the silver fire-pan and went up to the top of the altar.",
+   "locator": "Mishnah Tamid 1:4",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "1:4",
+   "quotes": [
+    "קידש ידיו ורגליו מן הכיור. נטל מחתת הכסף. ועלה לראש המזבח"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.1.4?lang=he"
+  },
+  {
+   "id": "tamid-3-2-go",
+   "claim": "The officer told them to go out and see whether the time had come.",
+   "locator": "Mishnah Tamid 3:2",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:2",
+   "quotes": [
+    "אמר להם הממונה צאו וראו אם הגיע זמן השחיטה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.2?lang=he",
+   "note": "The text names the time as the time of the slaughter; the narration says only 'the time'. No roof or lookout post is claimed."
+  },
+  {
+   "id": "tamid-3-2-barkai",
+   "claim": "The one who sees answers: Barkai.",
+   "locator": "Mishnah Tamid 3:2",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:2",
+   "quotes": [
+    "הרואה אומר ברקאי"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.2?lang=he"
+  },
+  {
+   "id": "tamid-3-2-hebron",
+   "claim": "Matya ben Shmuel: is the whole east lit, as far as Hebron? And he answers: yes.",
+   "locator": "Mishnah Tamid 3:2",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:2",
+   "quotes": [
+    "מתיא בן שמואל אומר האיר פני כל המזרח עד שהוא בחברון והוא אומר הין"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.2?lang=he",
+   "note": "Reading chosen: both calls are heard one after the other. The other reading takes Matya ben Shmuel's wording as a different version of the exchange, replacing 'Barkai' rather than following it."
+  },
+  {
+   "id": "tamid-3-7-bolt",
+   "claim": "The priest went to the northern wicket, opened it with the key, passed through the cell into the Sanctuary until he reached the great gate, then drew the bolt and the latches and opened it.",
+   "locator": "Mishnah Tamid 3:7",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:7",
+   "quotes": [
+    "בא לו לפשפש הצפוני",
+    "נטל את המפתח ופתח את הפשפש נכנס לתא ומן התא אל ההיכל עד שהוא מגיע לשער הגדול",
+    "הגיע לשער הגדול העביר את הנגר ואת הפותחות ופתחו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.7?lang=he",
+   "note": "The slice follows the Mishnah: he goes in by a small door north of the great gate and the leaves open from inside. Where exactly the wicket stood, what it looked like and the light behind the doors are imagined. The inside of the Sanctuary is not shown."
+  },
+  {
+   "id": "tamid-3-7-sound",
+   "claim": "The work did not begin until the sound of the great gate opening was heard.",
+   "locator": "Mishnah Tamid 3:7",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:7",
+   "quotes": [
+    "לא היה שוחט השוחט עד ששומע קול שער הגדול שנפתח"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.7?lang=he",
+   "note": "The text speaks of the slaughterer waiting. The slaughter is never shown; the narration says 'the morning's work'."
+  },
+  {
+   "id": "tamid-3-8-sounds",
+   "claim": "From Jericho they heard the great gate opening, the magrefa, Ben Katin's laver wheel, Gevini the herald, the flute, the cymbal, the song and the shofar.",
+   "locator": "Mishnah Tamid 3:8",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:8",
+   "quotes": [
+    "מיריחו היו שומעין קול שער הגדול שנפתח",
+    "מיריחו היו שומעין קול המגריפה",
+    "מיריחו היו שומעין קול העץ שעשה בן קטין מוכני לכיור",
+    "מיריחו היו שומעין קול גביני כרוז",
+    "מיריחו היו שומעין קול החליל",
+    "מיריחו היו שומעין קול הצלצל",
+    "מיריחו היו שומעין קול השיר",
+    "מיריחו היו שומעים קול השופר"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.8?lang=he",
+   "note": "The Mishnah lists these as sounds heard from Jericho; it does not say they came one after another in a single morning. The sequence of travelling sounds and the labels' timing are imagined."
+  },
+  {
+   "id": "tamid-3-8-goats",
+   "claim": "Rabbi Eliezer ben Diglai: my father's house had goats at Har Mikhvar, and they sneezed from the smell of the incense.",
+   "locator": "Mishnah Tamid 3:8",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:8",
+   "quotes": [
+    "אמר רבי אליעזר בן דגלאי עזים היו לבית אבא בהר מכוור. והיו מתעטשות מריח פטום הקטורת"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.8?lang=he",
+   "note": "The goats are at Har Mikhvar, not Jericho. The Vilna text spells the name Eliezer; other witnesses read Elazar."
+  },
+  {
+   "id": "yoma-20b-call",
+   "claim": "Gevini the herald called the priests to their service, the Levites to their platform and Israel to their post.",
+   "locator": "Bavli Yoma 20b",
+   "textId": "bavli-yoma.he.vilna",
+   "segment": "20b:7",
+   "quotes": [],
+   "paraphrase": true,
+   "sefaria": "https://www.sefaria.org/Yoma.20b?lang=he",
+   "note": "Paraphrased only: the vendored Bavli file is CC BY-SA, so no words of it are reproduced here or on screen."
+  },
+  {
+   "id": "middot-1-1-watch",
+   "claim": "Priests kept watch in three places in the Temple, and Levites in twenty-one.",
+   "locator": "Mishnah Middot 1:1",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "1:1",
+   "quotes": [
+    "בשלשה מקומות הכהנים שומרים בבית המקדש",
+    "והלוים בעשרים ואחד מקום"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.1.1?lang=he"
+  },
+  {
+   "id": "middot-1-2-rounds",
+   "claim": "The officer of the Temple Mount went round every watch with torches burning before him; a watchman who was standing greeted him with \"Peace be with you\".",
+   "locator": "Mishnah Middot 1:2",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "1:2",
+   "quotes": [
+    "איש הר הבית. היה מחזר על כל משמר ומשמר. ואבוקות דולקין לפניו",
+    "שלום עליך"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.1.2?lang=he"
+  },
+  {
+   "id": "middot-1-8-hearth",
+   "claim": "The Chamber of the Hearth was a large domed hall; the elders of the priestly family slept there with the keys of the court, and the young priests slept on the floor.",
+   "locator": "Mishnah Middot 1:8",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "1:8",
+   "quotes": [
+    "בית המוקד כיפה",
+    "וזקני בית אב ישנים שם. ומפתחות העזרה בידם"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.1.8?lang=he"
+  },
+  {
+   "id": "middot-1-9-keys",
+   "claim": "At closing time the priest lifted a marble slab by its ring, took the keys from the chain and locked up from inside, while the Levite slept outside.",
+   "locator": "Mishnah Middot 1:9",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "1:9",
+   "quotes": [
+    "הגיע זמן הנעילה הגביה את הטבלא בטבעת",
+    "ונעל הכהן מבפנים ובן לוי ישן לו מבחוץ"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.1.9?lang=he"
+  },
+  {
+   "id": "tamid-1-2-lottery",
+   "claim": "Whoever wished to clear the altar immersed early; the superintendent came, knocked, and said: whoever has immersed, come and cast lots.",
+   "locator": "Mishnah Tamid 1:2",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "1:2",
+   "quotes": [
+    "הממונה בא ודופק עליהם",
+    "מי שטבל יבא ויפיס"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.1.2?lang=he"
+  },
+  {
+   "id": "yoma-2-1-fingers",
+   "claim": "In the lottery the superintendent told the priests to hold up fingers; they put out one or two, never a thumb.",
+   "locator": "Mishnah Yoma 2:1",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "2:1",
+   "quotes": [
+    "הממונה אומר להם הצביעו",
+    "אחת או שתים. ואין מוציאין אגודל במקדש"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.2.1?lang=he"
+  },
+  {
+   "id": "yoma-2-2-race",
+   "claim": "Once two priests raced up the ramp, one pushed the other and broke his leg; after that the altar was cleared only by lottery.",
+   "locator": "Mishnah Yoma 2:2",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "2:2",
+   "quotes": [
+    "ודחף אחד מהן את חבירו ונפל. ונשברה רגלו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.2.2?lang=he"
+  },
+  {
+   "id": "tamid-1-3-search",
+   "claim": "Two groups with torches searched the court along the colonnades, east and west, and when they met said: peace, all is peace.",
+   "locator": "Mishnah Tamid 1:3",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "1:3",
+   "quotes": [
+    "ושתי אבוקות של אור בידם",
+    "הגיעו אלו ואלו אמרו שלום הכל שלום"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.1.3?lang=he"
+  },
+  {
+   "id": "tamid-2-1-brothers",
+   "claim": "When his brothers saw him come down, they ran, washed at the laver and went up to the top of the altar.",
+   "locator": "Mishnah Tamid 2:1",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "2:1",
+   "quotes": [
+    "ראוהו אחיו שירד והם רצו ובאו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.2.1?lang=he"
+  },
+  {
+   "id": "tamid-5-1-watch",
+   "claim": "On Shabbat one more blessing was added for the departing priestly watch.",
+   "locator": "Mishnah Tamid 5:1",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "5:1",
+   "quotes": [
+    "ובשבת מוסיפין ברכה אחת למשמר היוצא"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.5.1?lang=he"
+  },
+  {
+   "id": "tamid-7-2-blessing",
+   "claim": "The priests stood on the steps of the porch and blessed the people with one blessing; in the Temple they raised their hands above their heads.",
+   "locator": "Mishnah Tamid 7:2",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "7:2",
+   "quotes": [
+    "באו ועמדו על מעלות האולם",
+    "ובמקדש על גבי ראשיהן"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.7.2?lang=he"
+  },
+  {
+   "id": "yoma-7-5-garments",
+   "claim": "An ordinary priest served in four garments: a tunic, breeches, a turban and a sash; the High Priest added four more.",
+   "locator": "Mishnah Yoma 7:5",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "7:5",
+   "quotes": [
+    "וההדיוט בארבעה. בכתונת ומכנסים ומצנפת ואבנט"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.7.5?lang=he"
+  },
+  {
+   "id": "tamid-7-3-song",
+   "claim": "Ben Arza struck the cymbal and the Levites sang; at each section of the song the trumpet sounded and the people bowed.",
+   "locator": "Mishnah Tamid 7:3",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "7:3",
+   "quotes": [
+    "והקיש בן ארזא בצלצל. ודברו הלוים בשיר",
+    "על כל פרק תקיעה ועל כל תקיעה השתחויה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.7.3?lang=he"
+  },
+  {
+   "id": "tamid-7-3-trumpets",
+   "claim": "Two priests with silver trumpets stood by the table of the fats and sounded a long blast, a trill and a long blast.",
+   "locator": "Mishnah Tamid 7:3",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "7:3",
+   "quotes": [
+    "ושתי חצוצרות של כסף בידם. תקעו והריעו ותקעו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.7.3?lang=he"
+  },
+  {
+   "id": "middot-1-4-gates",
+   "claim": "The court had seven gates: three on the north, three on the south and one on the east, the Nicanor gate.",
+   "locator": "Mishnah Middot 1:4",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "1:4",
+   "quotes": [
+    "שבעה שערים היו בעזרה",
+    "שבמזרח שער נקנור"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.1.4?lang=he"
+  },
+  {
+   "id": "middot-2-3-soreg",
+   "claim": "Inside the outer court stood a lattice ten handbreadths high, the soreg, and inside it the terrace, ten cubits wide, with twelve steps.",
+   "locator": "Mishnah Middot 2:3",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "2:3",
+   "quotes": [
+    "לפנים ממנו סורג גבוה עשרה טפחים",
+    "לפנים ממנו החיל. עשר אמות"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.2.3?lang=he"
+  },
+  {
+   "id": "middot-2-5-womens-court",
+   "claim": "The women's court was a hundred and thirty-five cubits square, with a chamber in each corner.",
+   "locator": "Mishnah Middot 2:5",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "2:5",
+   "quotes": [
+    "עזרת הנשים היתה אורך מאה ושלשים וחמש. על רחב מאה ושלשים וחמש"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.2.5?lang=he"
+  },
+  {
+   "id": "middot-3-6-laver",
+   "claim": "The laver stood between the porch and the altar, drawn toward the south.",
+   "locator": "Mishnah Middot 3:6",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "3:6",
+   "quotes": [
+    "הכיור היה בין האולם ולמזבח. ומשוך כלפי הדרום"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.3.6?lang=he"
+  },
+  {
+   "id": "middot-2-5-steps",
+   "claim": "Fifteen steps rose from the women's court to the court of Israel, matching the fifteen Songs of Ascents; on them the Levites sang.",
+   "locator": "Mishnah Middot 2:5",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "2:5",
+   "quotes": [
+    "וחמש עשרה מעלות עולות מתוכה לעזרת ישראל. כנגד חמש עשרה מעלות שבתהלים",
+    "שעליהן הלוים אומרים בשיר"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.2.5?lang=he"
+  },
+  {
+   "id": "pesachim-5-1-tamid",
+   "claim": "The afternoon daily offering is slaughtered at eight and a half hours and offered at nine and a half.",
+   "locator": "Mishnah Pesachim 5:1",
+   "textId": "mishnah-pesachim.he.vilna-1913",
+   "segment": "5:1",
+   "quotes": [
+    "תמיד נשחט בשמנה ומחצה. וקרב בתשע ומחצה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Pesachim.5.1?lang=he",
+   "note": "Hours are seasonal hours reckoned from sunrise to sunset, as everywhere in this world. Others reckon from first light to nightfall, which puts it a little later."
+  },
+  {
+   "id": "pesachim-5-1-eve",
+   "claim": "On the eve of Pesach it is an hour earlier, weekday or Shabbat; when the eve falls on a Friday, earlier again; and the Pesach offering follows it.",
+   "locator": "Mishnah Pesachim 5:1",
+   "textId": "mishnah-pesachim.he.vilna-1913",
+   "segment": "5:1",
+   "quotes": [
+    "בערבי פסחים נשחט בשבע ומחצה. וקרב בשמנה ומחצה. בין בחול בין בשבת. חל ערב פסח להיות בערב שבת. נשחט בשש ומחצה וקרב בשבע ומחצה. והפסח אחריו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Pesachim.5.1?lang=he"
+  },
+  {
+   "id": "yoma-5-1-curtains",
+   "claim": "Two curtains divided the Holy from the Holy of Holies, a cubit apart; Rabbi Yose says there was only one.",
+   "locator": "Mishnah Yoma 5:1",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "5:1",
+   "quotes": [
+    "היה מהלך בהיכל עד שמגיע לבין שתי הפרוכת המבדילות בין הקדש ובין קדש הקדשים. וביניהן אמה. ר' יוסי אומר לא היתה שם אלא פרוכת אחת בלבד"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.5.1?lang=he",
+   "note": "This world follows the first view and shows two curtains; Rabbi Yose's single curtain is the other reading. What lies beyond them is never shown."
+  },
+  {
+   "id": "middot-4-7-length",
+   "claim": "Inside, the Sanctuary was forty cubits long, then a cubit (the amah traksin), then the Holy of Holies, twenty cubits.",
+   "locator": "Mishnah Middot 4:7",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "4:7",
+   "quotes": [
+    "ותוכו ארבעים אמה. אמה טרקסין. ועשרים אמה. בית קדש הקדשים"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.4.7?lang=he"
+  },
+  {
+   "id": "middot-4-1-gold",
+   "claim": "The Sanctuary's doorway was twenty cubits high and ten wide, and the whole house was overlaid with gold except behind the doors.",
+   "locator": "Mishnah Middot 4:1",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "4:1",
+   "quotes": [
+    "פתחו של היכל גבהו עשרים אמה. ורחבו עשר אמות",
+    "שכל הבית טוח בזהב חוץ מאחר הדלתות"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.4.1?lang=he"
+  },
+  {
+   "id": "tamid-3-9-menorah",
+   "claim": "The priest who cleared the menorah found the two eastern lamps burning; before the menorah was a stone with three steps, on which the priest stood to tend the lamps.",
+   "locator": "Mishnah Tamid 3:9",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:9",
+   "quotes": [
+    "מי שזכה בדישון המנורה נכנס ומצא שתי נרות מזרחיות דולקים",
+    "ואבן היתה לפני המנורה ובה שלש מעלות שעליה הכהן עומד ומטיב את הנרות"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.9?lang=he"
+  },
+  {
+   "id": "tamid-3-9-inner-altar",
+   "claim": "The priest who won the clearing of the inner altar went in, took the golden basket and swept the ashes into it.",
+   "locator": "Mishnah Tamid 3:9",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:9",
+   "quotes": [
+    "מי שזכה בדשון מזבח הפנימי. נכנס ונטל הטני. והניחו לפניו. והיה חופן ונותן לתוכו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.9?lang=he"
+  },
+  {
+   "id": "tamid-6-1-western-lamp",
+   "claim": "Later in the morning he left the western lamp burning, and from it the menorah was lit toward evening.",
+   "locator": "Mishnah Tamid 6:1",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "6:1",
+   "quotes": [
+    "ומניח את המערבי דולק. שממנו היה מדליק את המנורה בין הערבים"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.6.1?lang=he"
+  },
+  {
+   "id": "menachot-11-7-tables",
+   "claim": "Two tables stood inside the porch by the doorway of the house, one of marble and one of gold; and inside was a table of gold with the bread always on it.",
+   "locator": "Mishnah Menachot 11:7",
+   "textId": "mishnah-menachot.he.vilna-1913",
+   "segment": "11:7",
+   "quotes": [
+    "שני שולחנות היו באולם מבפנים. על פתח הבית. אחד של שיש. ואחד של זהב",
+    "ואחד של זהב מבפנים. שעליו לחם הפנים תמיד",
+    "שמעלין בקדש ולא מורידין"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Menachot.11.7?lang=he"
+  },
+  {
+   "id": "menachot-11-7-shabbat",
+   "claim": "On Shabbat four priests carried the new bread in, two with the two rows and two with the two cups of frankincense, and four went ahead to take the old away.",
+   "locator": "Mishnah Menachot 11:7",
+   "textId": "mishnah-menachot.he.vilna-1913",
+   "segment": "11:7",
+   "quotes": [
+    "ארבעה כהנים נכנסין. שנים בידם שני סדרים. ושנים בידם שני בזיכים. וארבעה מקדימין לפניהם"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Menachot.11.7?lang=he",
+   "note": "The hour of the exchange is not given here; this world sets it after the morning service."
+  },
+  {
+   "id": "tamid-6-3-incense",
+   "claim": "The priest who won the incense did not burn it until the superintendent told him: burn! The people withdrew, and he burned it, bowed and went out.",
+   "locator": "Mishnah Tamid 6:3",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "6:3",
+   "quotes": [
+    "לא היה המקטיר מקטיר. עד שהממונה אומר לו הקטר",
+    "פרשו העם. והקטיר והשתחוה ויצא"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.6.3?lang=he"
+  },
+  {
+   "id": "tamid-3-6-teni",
+   "claim": "The basket for the inner altar's ashes was like a large golden bowl holding two and a half kav.",
+   "locator": "Mishnah Tamid 3:6",
+   "textId": "mishnah-tamid.he.vilna-1913",
+   "segment": "3:6",
+   "quotes": [
+    "הטני דומה לתרקב גדול של זהב מחזיק קבין וחצי"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Tamid.3.6?lang=he"
+  },
+  {
+   "id": "sukkah-4-5-willows",
+   "claim": "Willow branches were brought from Motza below Jerusalem and stood up at the sides of the altar, their tops bent over it.",
+   "locator": "Mishnah Sukkah 4:5",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "4:5",
+   "quotes": [
+    "ובאין וזוקפין אותן בצדי המזבח. וראשיהן כפופין. על גבי המזבח"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.4.5?lang=he"
+  },
+  {
+   "id": "sukkah-4-5-circuit",
+   "claim": "Each day they went round the altar once, and on that (seventh) day seven times.",
+   "locator": "Mishnah Sukkah 4:5",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "4:5",
+   "quotes": [
+    "בכל יום מקיפין את המזבח פעם אחת",
+    "ואותו היום. מקיפין את המזבח שבעה פעמים"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.4.5?lang=he",
+   "note": "Who walked the circuit is not said here; this world shows priests. On Shabbat it is left out, since the Mishnah's rules for Shabbat (4:6) are not vendored."
+  },
+  {
+   "id": "sukkah-4-5-farewell",
+   "claim": "As they left they said: beauty is yours, O altar. (Rabbi Eliezer gives other words.)",
+   "locator": "Mishnah Sukkah 4:5",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "4:5",
+   "quotes": [
+    "בשעת פטירתן מה הן אומרים. יופי לך מזבח. יופי לך מזבח"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.4.5?lang=he",
+   "note": "Rabbi Eliezer's version contains a form of the divine name and is not voiced."
+  },
+  {
+   "id": "sukkah-4-9-libation",
+   "claim": "The water libation: a golden flask of three log, filled from the Shiloah; at the Water Gate they sounded a long blast, a trill and a long blast; he went up the ramp, and the people told him: raise your hand.",
+   "locator": "Mishnah Sukkah 4:9",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "4:9",
+   "quotes": [
+    "ניסוך המים כיצד. צלוחית של זהב. מחזקת שלשת לוגים. היה ממלא מן השילוח. הגיעו לשער המים. תקעו. והריעו. ותקעו. עלה בכבש",
+    "ולמנסך אומרים לו הגבה ידך"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.4.9?lang=he",
+   "note": "Where the Water Gate stood on the south of the court is our placement."
+  },
+  {
+   "id": "sukkah-5-1-joy",
+   "claim": "The flute of the water-drawing played five or six days, since it overrides neither Shabbat nor a festival day; whoever has not seen its joy has never seen joy.",
+   "locator": "Mishnah Sukkah 5:1",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "5:1",
+   "quotes": [
+    "החליל חמשה וששה. זהו החליל של בית השואבה. שאינה דוחה לא את השבת. ולא את יום טוב",
+    "כל מי שלא ראה שמחת בית השואבה. לא ראה שמחה מימיו"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.5.1?lang=he"
+  },
+  {
+   "id": "sukkah-5-2-lamps",
+   "claim": "After the first festival day they went down to the women's court; golden lamp stands stood there, with four golden bowls atop each and four ladders to each, and four young priests poured oil into them.",
+   "locator": "Mishnah Sukkah 5:2",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "5:2",
+   "quotes": [
+    "במוצאי יום טוב הראשון של חג. ירדו לעזרת נשים",
+    "ומנורות של זהב היו שם. וארבעה ספלים של זהב בראשיהן. וארבע סולמות לכל אחד ואחד וארבעה ילדים מפרחי כהונה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.5.2?lang=he",
+   "note": "How many lamp stands, and how tall, the Mishnah does not say here; four is our choice."
+  },
+  {
+   "id": "sukkah-5-3-light",
+   "claim": "There was no courtyard in Jerusalem that was not lit by the light of the water-drawing.",
+   "locator": "Mishnah Sukkah 5:3",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "5:3",
+   "quotes": [
+    "ולא היה חצר בירושלים. שאינה מאירה מאור בית השואבה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.5.3?lang=he"
+  },
+  {
+   "id": "sukkah-5-4-dance",
+   "claim": "The pious danced with torches in their hands, and the Levites played harps, lyres, cymbals, trumpets and countless instruments on the fifteen steps.",
+   "locator": "Mishnah Sukkah 5:4",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "5:4",
+   "quotes": [
+    "חסידים ואנשי מעשה. היו מרקדים לפניהם. באבוקות של אור שבידיהן",
+    "והלוים בכנורות. ובנבלים ובמצלתים. ובחצוצרות ובכלי שיר בלא מספר על חמש עשרה מעלות"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.5.4?lang=he"
+  },
+  {
+   "id": "sukkah-5-4-faces",
+   "claim": "At cockcrow two priests sounded trumpets down the steps and across the women's court to its east gate, then turned west and said: our fathers who were in this place had their backs to the Sanctuary and their faces eastward.",
+   "locator": "Mishnah Sukkah 5:4",
+   "textId": "mishnah-sukkah.he.vilna-1913",
+   "segment": "5:4",
+   "quotes": [
+    "ועמדו שני כהנים בשער העליון",
+    "קרא הגבר. תקעו. והריעו. ותקעו",
+    "הפכו פניהן למערב ואמרו אבותינו שהיו במקום הזה אחוריהם אל היכל. ופניהם קדמה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Sukkah.5.4?lang=he",
+   "note": "What they say next carries a form of the divine name and is not voiced."
+  },
+  {
+   "id": "rosh-hashanah-3-3-shofar",
+   "claim": "The shofar of Rosh Hashanah was of an ibex, straight, its mouth covered with gold, with two trumpets at its sides; the shofar sounds long and the trumpets short.",
+   "locator": "Mishnah Rosh Hashanah 3:3",
+   "textId": "mishnah-rosh-hashanah.he.vilna-1913",
+   "segment": "3:3",
+   "quotes": [
+    "שופר של ראש השנה. של יעל פשוט. ופיו מצופה זהב. ושתי חצוצרות מן הצדדין. שופר מאריך וחצוצרות מקצרות"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Rosh_Hashanah.3.3?lang=he",
+   "note": "The hour of the sounding here is ours."
+  },
+  {
+   "id": "rosh-hashanah-4-1-shabbat",
+   "claim": "When Rosh Hashanah fell on Shabbat, the shofar was sounded in the Temple, but not in the country.",
+   "locator": "Mishnah Rosh Hashanah 4:1",
+   "textId": "mishnah-rosh-hashanah.he.vilna-1913",
+   "segment": "4:1",
+   "quotes": [
+    "יום טוב של ראש השנה שחל להיות בשבת. במקדש היו תוקעים. אבל לא במדינה"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Rosh_Hashanah.4.1?lang=he"
+  },
+  {
+   "id": "bikkurim-1-3-atzeret",
+   "claim": "First fruits are not brought before Shavuot (Atzeret).",
+   "locator": "Mishnah Bikkurim 1:3",
+   "textId": "mishnah-bikkurim.he.vilna-1913",
+   "segment": "1:3",
+   "quotes": [
+    "אין מביאין בכורים קודם לעצרת"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Bikkurim.1.3?lang=he",
+   "note": "They were brought from Shavuot on; this world shows the procession on Shavuot itself, which is our choice of day."
+  },
+  {
+   "id": "bikkurim-3-3-ox",
+   "claim": "The ox walked before them, its horns covered with gold and a crown of olive on its head, and the flute played before them.",
+   "locator": "Mishnah Bikkurim 3:3",
+   "textId": "mishnah-bikkurim.he.vilna-1913",
+   "segment": "3:3",
+   "quotes": [
+    "והשור הולך לפניהם. וקרניו מצופות זהב ועטרת של זית בראשו החליל מכה לפניהם"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Bikkurim.3.3?lang=he"
+  },
+  {
+   "id": "bikkurim-3-4-basket",
+   "claim": "The flute played until they reached the Temple Mount; there even King Agrippa took the basket on his shoulder and went in as far as the court, and the Levites sang.",
+   "locator": "Mishnah Bikkurim 3:4",
+   "textId": "mishnah-bikkurim.he.vilna-1913",
+   "segment": "3:4",
+   "quotes": [
+    "החליל מכה לפניהם עד שמגיעין להר הבית. הגיעו להר הבית. אפילו אגריפס המלך. נוטל הסל על כתפו. ונכנס עד שמגיע לעזרה. הגיע לעזרה. ודברו הלוים בשיר"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Bikkurim.3.4?lang=he",
+   "note": "The psalm they sang is not quoted, since it carries the divine name."
+  },
+  {
+   "id": "yoma-7-4-feast",
+   "claim": "On Yom Kippur the High Priest went in to burn the afternoon incense and tend the lamps; when he came out safely from the Holy he made a feast for his friends.",
+   "locator": "Mishnah Yoma 7:4",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "7:4",
+   "quotes": [
+    "ונכנס להקטיר קטורת של בין הערבים. ולהטיב את הנרות",
+    "ויום טוב היה עושה לאוהביו. בשעה שיצא בשלום מן הקדש"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.7.4?lang=he",
+   "note": "His service is told, not shown."
+  },
+  {
+   "id": "middot-1-6-stones",
+   "claim": "In the north-eastern chamber of the Chamber of the Hearth the Hasmoneans stored away the stones of the altar that the Greek kings had defiled.",
+   "locator": "Mishnah Middot 1:6",
+   "textId": "mishnah-middot.he.vilna-1913",
+   "segment": "1:6",
+   "quotes": [
+    "מזרחית צפונית. בה גנזו בני חשמונאי את אבני המזבח ששקצום מלכי יון"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Middot.1.6?lang=he"
+  },
+  {
+   "id": "yoma-1-8-hours",
+   "claim": "Every day the altar was cleared at cockcrow or near it; on Yom Kippur from midnight; on the pilgrim festivals from the first watch; and before cockcrow came, the court was full of Israel.",
+   "locator": "Mishnah Yoma 1:8",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "1:8",
+   "quotes": [
+    "בכל יום תורמין את המזבח. בקריאת הגבר. או סמוך לו. בין לפניו. בין לאחריו. ביום הכפורים מחצות. וברגלים. מאשמורה הראשונה",
+    "ולא היתה קריאת הגבר מגעת. עד שהיתה עזרה מלאה מישראל"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.1.8?lang=he",
+   "note": "We read 'the festivals' as every day of the pilgrim festivals, and 'the first watch' as the first third of the night from sunset, as the clock counts, beginning a little after nightfall. Others count four watches, or read the festivals as their holy days only."
+  },
+  {
+   "id": "yoma-3-4-high-priest",
+   "claim": "On Yom Kippur the High Priest himself offered the daily offering, burned the morning incense and tended the lamps.",
+   "locator": "Mishnah Yoma 3:4",
+   "textId": "mishnah-yoma.he.vilna-1913",
+   "segment": "3:4",
+   "quotes": [
+    "הביאו לו את התמיד",
+    "נכנס להקטיר קטורת של שחר ולהטיב את הנרות. ולהקריב את הראש. ואת האברים"
+   ],
+   "sefaria": "https://www.sefaria.org/Mishnah_Yoma.3.4?lang=he"
+  }
+ ],
+ "editorial": [
+  "Seasonal hours are reckoned from sunrise to sunset (and sunset to sunrise by night); first light is the sun 16.1° below the horizon; nightfall 7.083° below.",
+  "The Hebrew calendar is the fixed arithmetic calendar; in Temple times months were set by observation of the new moon, so a date can differ by a day.",
+  "Festivals are kept as in the Land of Israel: one day each, except Rosh Hashanah. Shavuot is fixed at 6 Sivan, the Mishnah's reckoning; the Boethusians counted otherwise.",
+  "Which priestly watch serves in a given week is not shown, because the in-world year is unresolved.",
+  "Mishnah Yoma 5:1 has two curtains a cubit apart before the Holy of Holies; Rabbi Yose says there was only one. Nothing beyond the porch is shown."
+ ]
+}

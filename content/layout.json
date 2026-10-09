@@ -1,0 +1,332 @@
+{
+ "note": "Frozen snapshot of the legacy solved geometry (default alternatives), boxes in metres. Never regenerated at runtime.",
+ "solverVersion": 1,
+ "axes": {
+  "x": "east",
+  "y": "up",
+  "z": "south",
+  "unit": "metre"
+ },
+ "units": "metres",
+ "boxes": [
+  {
+   "id": "geo-altar",
+   "kind": "altar",
+   "locationId": "loc-altar",
+   "x": -11.04,
+   "y": 8.4,
+   "z": -46.8,
+   "sx": 15.36,
+   "sy": 2.88,
+   "sz": 15.36
+  },
+  {
+   "id": "geo-azarah",
+   "kind": "court",
+   "locationId": "loc-azarah",
+   "x": -37.68,
+   "y": 4.92,
+   "z": -46.8,
+   "sx": 89.76,
+   "sy": 4.08,
+   "sz": 64.8
+  },
+  {
+   "id": "geo-ezrat-kohanim",
+   "kind": "court",
+   "locationId": "loc-ezrat-kohanim",
+   "x": -0.72,
+   "y": 7.01,
+   "z": -46.8,
+   "sx": 5.28,
+   "sy": 0.1,
+   "sz": 64.8
+  },
+  {
+   "id": "geo-ezrat-yisrael",
+   "kind": "court",
+   "locationId": "loc-ezrat-yisrael",
+   "x": 4.56,
+   "y": 6.985,
+   "z": -46.8,
+   "sx": 5.28,
+   "sy": 0.05,
+   "sz": 64.8
+  },
+  {
+   "id": "geo-fifteen-steps",
+   "kind": "stair",
+   "x": 9,
+   "y": 5.16,
+   "z": -46.8,
+   "sx": 3.6,
+   "sy": 3.6,
+   "sz": 14.4
+  },
+  {
+   "id": "geo-heichal-building",
+   "kind": "building",
+   "locationId": "loc-heichal",
+   "x": -57.12,
+   "y": 30.96,
+   "z": -46.8,
+   "sx": 40.32,
+   "sy": 48,
+   "sz": 33.6
+  },
+  {
+   "id": "geo-heichal-doorway",
+   "kind": "gate",
+   "x": -36.72,
+   "y": 11.76,
+   "z": -46.8,
+   "sx": 0.48,
+   "sy": 9.6,
+   "sz": 4.8
+  },
+  {
+   "id": "geo-heichal-interior",
+   "kind": "chamber",
+   "locationId": "loc-heichal",
+   "x": -49.44,
+   "y": 16.56,
+   "z": -46.8,
+   "sx": 19.2,
+   "sy": 19.2,
+   "sz": 9.6
+  },
+  {
+   "id": "geo-hel",
+   "kind": "platform",
+   "locationId": "loc-hel",
+   "x": -5.28,
+   "y": 1.44,
+   "z": -46.8,
+   "sx": 164.16,
+   "sy": 2.88,
+   "sz": 74.4
+  },
+  {
+   "id": "geo-kevesh",
+   "kind": "stair",
+   "locationId": "loc-kevesh",
+   "x": -11.04,
+   "y": 8.4,
+   "z": -31.44,
+   "sx": 7.68,
+   "sy": 2.88,
+   "sz": 15.36
+  },
+  {
+   "id": "geo-kodesh-hakodashim",
+   "kind": "chamber",
+   "x": -64.32,
+   "y": 16.56,
+   "z": -46.8,
+   "sx": 9.6,
+   "sy": 19.2,
+   "sz": 9.6
+  },
+  {
+   "id": "geo-mount-gate-middot-east",
+   "kind": "gate",
+   "x": 118.5,
+   "y": 3.5,
+   "z": -1.8,
+   "sx": 3,
+   "sy": 7,
+   "sz": 6
+  },
+  {
+   "id": "geo-mount-gate-middot-huldah-1",
+   "kind": "gate",
+   "x": -30.6,
+   "y": 3.5,
+   "z": 118.5,
+   "sx": 6,
+   "sy": 7,
+   "sz": 3
+  },
+  {
+   "id": "geo-mount-gate-middot-huldah-2",
+   "kind": "gate",
+   "x": 27,
+   "y": 3.5,
+   "z": 118.5,
+   "sx": 6,
+   "sy": 7,
+   "sz": 3
+  },
+  {
+   "id": "geo-mount-gate-middot-kiponus",
+   "kind": "gate",
+   "x": -118.5,
+   "y": 3.5,
+   "z": -11.4,
+   "sx": 3,
+   "sy": 7,
+   "sz": 6
+  },
+  {
+   "id": "geo-mount-gate-middot-taddi",
+   "kind": "gate",
+   "x": -1.8,
+   "y": 3.5,
+   "z": -118.5,
+   "sx": 6,
+   "sy": 7,
+   "sz": 3
+  },
+  {
+   "id": "geo-nikanor-gate",
+   "kind": "gate",
+   "x": 7.44,
+   "y": 11.76,
+   "z": -46.8,
+   "sx": 0.48,
+   "sy": 9.6,
+   "sz": 4.8
+  },
+  {
+   "id": "geo-slaughter-pillars-zone",
+   "kind": "platform",
+   "locationId": "loc-beit-hamitbachayim",
+   "x": -11.04,
+   "y": 7.02,
+   "z": -74.4,
+   "sx": 15.36,
+   "sy": 0.12,
+   "sz": 0.48
+  },
+  {
+   "id": "geo-slaughter-rings-zone",
+   "kind": "platform",
+   "locationId": "loc-tabaot-north-of-altar",
+   "x": -11.04,
+   "y": 7.02,
+   "z": -64.08,
+   "sx": 15.36,
+   "sy": 0.12,
+   "sz": 11.52
+  },
+  {
+   "id": "geo-slaughter-tables-zone",
+   "kind": "platform",
+   "locationId": "loc-beit-hamitbachayim",
+   "x": -11.04,
+   "y": 7.02,
+   "z": -72,
+   "sx": 15.36,
+   "sy": 0.12,
+   "sz": 0.48
+  },
+  {
+   "id": "geo-soreg-east",
+   "kind": "barrier",
+   "locationId": "loc-second-hieron-bj",
+   "x": 76.92,
+   "y": 0.4,
+   "z": -46.8,
+   "sx": 0.24,
+   "sy": 0.8,
+   "sz": 74.4
+  },
+  {
+   "id": "geo-soreg-north",
+   "kind": "barrier",
+   "locationId": "loc-second-hieron-bj",
+   "x": -5.28,
+   "y": 0.4,
+   "z": -84.12,
+   "sx": 164.64,
+   "sy": 0.8,
+   "sz": 0.24
+  },
+  {
+   "id": "geo-soreg-south",
+   "kind": "barrier",
+   "locationId": "loc-second-hieron-bj",
+   "x": -5.28,
+   "y": 0.4,
+   "z": -9.48,
+   "sx": 164.64,
+   "sy": 0.8,
+   "sz": 0.24
+  },
+  {
+   "id": "geo-soreg-west",
+   "kind": "barrier",
+   "locationId": "loc-second-hieron-bj",
+   "x": -87.48,
+   "y": 0.4,
+   "z": -46.8,
+   "sx": 0.24,
+   "sy": 0.8,
+   "sz": 74.4
+  },
+  {
+   "id": "geo-temple-mount",
+   "kind": "platform",
+   "locationId": "loc-temple-mount",
+   "x": 0,
+   "y": -0.48,
+   "z": 0,
+   "sx": 240,
+   "sy": 0.96,
+   "sz": 240
+  },
+  {
+   "id": "geo-ulam",
+   "kind": "building",
+   "locationId": "loc-ulam",
+   "x": -33.12,
+   "y": 30.96,
+   "z": -46.8,
+   "sx": 7.68,
+   "sy": 48,
+   "sz": 48
+  },
+  {
+   "id": "geo-ulam-altar-space",
+   "kind": "platform",
+   "locationId": "loc-between-ulam-and-altar",
+   "x": -24,
+   "y": 7.02,
+   "z": -46.8,
+   "sx": 10.56,
+   "sy": 0.12,
+   "sz": 15.36
+  },
+  {
+   "id": "geo-ulam-doorway",
+   "kind": "gate",
+   "x": -29.04,
+   "y": 16.56,
+   "z": -46.8,
+   "sx": 0.48,
+   "sy": 19.2,
+   "sz": 9.6
+  },
+  {
+   "id": "geo-ulam-interior",
+   "kind": "chamber",
+   "x": -34.32,
+   "y": 16.56,
+   "z": -46.8,
+   "sx": 5.28,
+   "sy": 19.2,
+   "sz": 43.2
+  },
+  {
+   "id": "geo-womens-court",
+   "kind": "court",
+   "locationId": "loc-womens-court",
+   "x": 39.6,
+   "y": 3.12,
+   "z": -46.8,
+   "sx": 64.8,
+   "sy": 0.48,
+   "sz": 64.8
+  }
+ ]
+}

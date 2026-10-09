@@ -1,194 +1,130 @@
 <!doctype html>
 <html lang="he" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="temple-build" content="public" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0c1117" />
-    <title>בית שני ההרודיאני — זמן, מקום ומקורות</title>
-    <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="src/presentation/styles.css" />
-    <!-- Three.js (ADR-003): vendored, no CDN. Must precede every module script. -->
-    <script type="importmap">{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}</script>
-  </head>
-  <body>
-    <a class="skip-link" href="#state-region" id="skip-link">דלגו לתוכן במצב הנוכחי</a>
-    <div id="mode-banner" class="mode-banner" role="note" hidden>
-      <strong id="mode-banner-text"></strong>
-    </div>
-    <p id="mode-banner-detail" class="mode-banner-detail" hidden></p>
-    <div id="fixture-banner" class="fixture-banner" role="note" hidden></div>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1030">
+<title>הר הבית, עכשיו · The Temple Mount, now</title>
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
+<style>
+  :root {
+    --ink: #2b1d12; --paper: #fff6e2; --gold: #e0a93a; --glass: rgba(16, 14, 34, .62); --line: rgba(255, 240, 200, .35); --light: #fff3d6;
+    font-family: "Frank Ruhl Libre", "David", "Georgia", "Times New Roman", serif;
+    --edge: max(12px, env(safe-area-inset-left)); --top: max(12px, env(safe-area-inset-top)); --bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b1f; color: var(--light); -webkit-tap-highlight-color: transparent; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  [hidden] { display: none !important; }
+  button { font: inherit; cursor: pointer; color: inherit; }
 
-    <header class="topbar">
-      <div class="identity">
-        <span class="sigil" aria-hidden="true">◒</span>
-        <div>
-          <p class="kicker" id="app-kicker">עולם חי מבוסס מקורות</p>
-          <h1 id="app-heading">בית שני ההרודיאני</h1>
-        </div>
-      </div>
-      <div class="topbar-meta">
-        <button type="button" class="present-open" id="present-open" data-focus-key="present-open" hidden></button>
-        <p class="mode-label" id="mode-label"></p>
-        <p class="scope" id="app-scope"></p>
-        <button type="button" class="report-button general-report" id="feedback-general" aria-haspopup="dialog" data-focus-key="report-general-header" hidden></button>
-      </div>
-    </header>
+  /* Where and when: Jerusalem time, the Hebrew date, the hour of the Temple day. */
+  #clock { position: fixed; top: var(--top); inset-inline-start: var(--edge); padding: 8px 14px; border-radius: 14px; background: var(--glass);
+    border: 1px solid var(--line); backdrop-filter: blur(6px); font-size: 15px; line-height: 1.35; max-width: calc(100vw - 120px); pointer-events: none; }
+  #clock b { font-size: 18px; }
+  #clock .day { display: inline-block; margin-inline-start: 6px; padding: 0 8px; border-radius: 99px; background: var(--gold); color: var(--ink); font-size: 13px; font-weight: 700; }
+  #bar { position: fixed; top: var(--top); inset-inline-end: var(--edge); display: flex; gap: 8px; z-index: 5; }
+  #lang, #sound { min-width: 44px; min-height: 44px; padding: 8px 14px; border-radius: 99px; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(6px); }
+  #sound { padding: 8px; display: grid; place-items: center; }
+  #sound svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #sound[aria-pressed="true"] .off, #sound[aria-pressed="false"] .on { display: none; }
+  button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  /* The text page, where WebGL is missing. */
+  #plain { position: fixed; inset: 0; overflow: auto; padding: 24px var(--edge); background: #0b1030; line-height: 1.5; }
+  #plain > * { max-width: 40em; margin-inline: auto; }
+  #plain h1 { font-size: clamp(28px, 6vw, 44px); margin-block: 8px 12px; }
+  #plain-clock { font-size: 18px; padding: 10px 14px; border-radius: 14px; background: var(--glass); border: 1px solid var(--line); }
+  #plain-notes { display: grid; gap: 12px; margin-block: 16px; }
+  #plain-notes article { padding: 12px 14px; border-radius: 6px; background: rgba(250, 244, 230, .94); color: var(--ink); border-inline-start: 5px solid var(--gold); }
+  #plain-notes article.imagined p { font-style: italic; }
+  #plain-notes small { font: 600 12px system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: #8a5a1c; }
+  #plain-notes p { margin: 4px 0 0; }
+  #plain-disclaimer { font-size: 14px; opacity: .8; font-style: italic; }
+  #plain-lang { min-height: 44px; padding: 8px 18px; border-radius: 99px; background: var(--glass); border: 1px solid var(--line); margin-block: 12px; }
 
-    <main class="layout" id="app" aria-busy="true">
-      <p class="loading" id="loading">טוען נתונים…</p>
+  /* Speech: only what people say aloud, drawn above their heads. */
+  #bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+  .bubble { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; max-width: min(260px, 60vw); padding: 7px 12px 8px; border-radius: 16px;
+    background: var(--paper); color: var(--ink); border: 2px solid var(--ink); text-align: center; line-height: 1.25; box-shadow: 0 3px 0 rgba(43, 29, 18, .45); }
+  .bubble::after { content: ""; position: absolute; left: calc(50% - 7px); bottom: -9px; border: 7px solid transparent; border-top-color: var(--ink); border-bottom: 0; }
+  .bubble .said { display: block; font-size: 20px; font-weight: 700; }
+  .bubble .gloss { display: block; font-size: 13px; opacity: .75; margin-top: 2px; }
 
-      <section class="panel tour-panel" id="tour" aria-labelledby="tour-heading" hidden></section>
+  /* Place notes: what is known about where you stand. A card, never a bubble. */
+  #note { position: fixed; inset-inline-end: var(--edge); bottom: calc(var(--bottom) + 4px); width: min(380px, calc(100vw - 2 * var(--edge) - 150px));
+    padding: 12px 14px 12px; border-radius: 6px; background: rgba(250, 244, 230, .94); color: var(--ink); border-inline-start: 5px solid var(--gold);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .35); font-size: 15px; line-height: 1.45; max-height: 40vh; overflow: auto; }
+  #note.folded p { display: none; }
+  #note header { cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #8a5a1c; }
+  #note header button { margin-inline-start: auto; min-width: 44px; min-height: 44px; margin-block: -10px; border: 0; background: none; color: inherit; font-size: 16px; }
+  #note p { margin: 6px 0 0; }
+  #note .imagined { font-style: italic; }
 
-      <section class="panel timeline-panel" id="timeline" aria-labelledby="timeline-heading" hidden>
-        <h2 id="timeline-heading" class="panel-heading"></h2>
+  /* Touch: a stick to walk with. Dragging anywhere else looks around. */
+  #stick { position: fixed; inset-inline-start: calc(var(--edge) + 6px); bottom: calc(var(--bottom) + 6px); width: 112px; height: 112px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02)); border: 1.5px solid var(--line); touch-action: none; }
+  #knob { position: absolute; left: 36px; top: 36px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 243, 214, .55); border: 1.5px solid #fff; }
+  #keys { position: fixed; inset-inline-start: var(--edge); bottom: var(--bottom); font: 13px system-ui, sans-serif; opacity: .7; pointer-events: none; }
+  @media (pointer: fine) { #stick { display: none; } }
+  @media (pointer: coarse) { #keys { display: none; } #note { width: calc(100vw - 2 * var(--edge) - 140px); font-size: 14px; } }
+  @media (max-width: 520px) and (orientation: portrait) {
+    #note { inset-inline: var(--edge); bottom: calc(var(--bottom) + 132px); width: auto; max-height: 30vh; }
+    #clock { font-size: 13px; top: calc(var(--top) + 54px); max-width: calc(100vw - 2 * var(--edge)); } #clock b { font-size: 15px; }
+    #follow, #back { top: calc(var(--top) + 126px); }
+  }
 
-        <div class="field day-type-field">
-          <label for="day-type" id="day-type-label"></label>
-          <select id="day-type" aria-describedby="day-type-hint"></select>
-          <p class="hint" id="day-type-hint"></p>
-          <p class="hint day-type-definition" id="day-type-definition" hidden></p>
-        </div>
+  /* The Jericho flight: an offer when the great gate opens, a way back, the name of each sound as it arrives. */
+  #follow, #back { position: fixed; top: calc(var(--top) + 72px); left: 50%; transform: translateX(-50%); z-index: 3; min-height: 44px; padding: 10px 22px;
+    border-radius: 99px; font-size: 18px; font-weight: 700; white-space: nowrap; }
+  #follow { color: var(--ink); background: linear-gradient(#ffe3a0, var(--gold)); border: 0; box-shadow: 0 4px 0 #9a6a14, 0 8px 24px rgba(255, 170, 60, .4);
+    animation: beckon 2.4s ease-in-out infinite; }
+  #back { background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(6px); font-size: 16px; }
+  @keyframes beckon { 50% { box-shadow: 0 4px 0 #9a6a14, 0 0 34px 8px rgba(255, 200, 90, .75); } }
+  #heard { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 2; pointer-events: none; text-align: center; font-size: clamp(22px, 4vw, 34px);
+    font-weight: 700; text-shadow: 0 1px 6px rgba(0, 0, 0, .6); white-space: nowrap; padding: 8px 22px 10px; border-radius: 16px; background: var(--glass);
+    backdrop-filter: blur(6px); border: 1px solid var(--line); }
+  #heard small { display: block; font: 600 12px system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+  body.flying #stick, body.flying #keys { visibility: hidden; }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 4; }
 
-        <div class="tabs" role="tablist" id="time-tabs">
-          <button type="button" role="tab" id="tab-sequence" aria-controls="panel-sequence" aria-selected="true"></button>
-          <button type="button" role="tab" id="tab-clock" aria-controls="panel-clock" aria-selected="false" tabindex="-1"></button>
-        </div>
-
-        <div class="tabpanel" role="tabpanel" id="panel-sequence" aria-labelledby="tab-sequence">
-          <p class="hint" id="sequence-intro"></p>
-          <div id="sequence-body">
-            <div class="field" id="sequence-select-field" hidden>
-              <label for="sequence-select" id="sequence-select-label"></label>
-              <select id="sequence-select"></select>
-            </div>
-            <p class="sequence-name" id="sequence-name"></p>
-            <p class="stage-note" id="sequence-stage-note" hidden></p>
-            <div class="sequence-meta" id="sequence-meta"></div>
-            <p class="position" id="sequence-position" aria-hidden="true"></p>
-            <div class="range-wrap">
-              <label for="seq-range" id="seq-range-label" class="sr-only"></label>
-              <input id="seq-range" type="range" min="0" max="0" step="1" value="0" />
-            </div>
-            <div class="button-row" id="sequence-buttons">
-              <button type="button" id="seq-first"></button>
-              <button type="button" id="seq-prev"></button>
-              <button type="button" id="seq-next"></button>
-              <button type="button" id="seq-last"></button>
-            </div>
-            <ol class="step-list" id="seq-steps"></ol>
-            <details class="order-note" id="order-note">
-              <summary id="order-note-summary"></summary>
-              <p id="order-note-text"></p>
-            </details>
-            <div id="order-evidence"></div>
-          </div>
-          <p class="hint" id="no-sequence" hidden></p>
-        </div>
-
-        <div class="tabpanel" role="tabpanel" id="panel-clock" aria-labelledby="tab-clock" hidden>
-          <p class="hint" id="clock-intro"></p>
-          <p class="clock-readout" id="clock-readout" aria-hidden="true">12:00</p>
-          <div class="range-wrap">
-            <label for="clock-range" id="clock-range-label" class="sr-only"></label>
-            <input id="clock-range" type="range" min="0" max="1439" step="5" value="720" />
-            <div class="range-labels" aria-hidden="true"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:59</span></div>
-          </div>
-          <div class="button-row" role="group" id="clock-jumps"></div>
-          <p class="hint" id="clock-no-events" hidden></p>
-          <div class="play-row">
-            <button type="button" id="play-button" aria-pressed="false"></button>
-            <p class="hint" id="reduced-motion-note" hidden></p>
-          </div>
-          <div class="notice" id="clock-notice" hidden>
-            <p class="notice-title" id="clock-notice-text"></p>
-            <p id="clock-notice-detail"></p>
-            <ul id="clock-notice-list"></ul>
-            <button type="button" id="switch-to-sequence"></button>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel state-panel" id="state-region" tabindex="-1" aria-labelledby="state-heading" hidden>
-        <h2 id="state-heading" class="panel-heading"></h2>
-        <p class="assumption-row"><button type="button" class="assumption-chip" id="day-type-chip" aria-controls="day-type"></button></p>
-        <p class="time-readout" id="time-readout"></p>
-        <div id="headline" class="headline"></div>
-        <div id="empty-state" class="empty-state" hidden></div>
-        <div id="event-list" class="event-list"></div>
-        <div id="conditional-list" class="side-list" hidden></div>
-        <div id="revealed-list" class="event-list"></div>
-        <div id="unplaced-list" class="side-list" hidden></div>
-        <ul id="diagnostics" class="diagnostics" hidden></ul>
-      </section>
-
-      <section class="panel scene-panel" id="scene" aria-labelledby="scene-heading" hidden>
-        <h2 id="scene-heading" class="panel-heading"></h2>
-        <div class="scene3d-section" id="scene3d-section">
-          <button type="button" id="scene3d-toggle" class="scene3d-toggle" aria-expanded="false" aria-controls="scene3d-panel"></button>
-          <div id="scene3d-panel" class="scene3d-panel" hidden>
-            <h3 id="scene3d-heading"></h3>
-            <p class="scene3d-tier" id="scene3d-tier" hidden></p>
-            <p class="dialog-preview-strip scene3d-preview-strip" id="scene3d-preview-strip" hidden></p>
-            <p class="hint" id="scene3d-intro"></p>
-            <p class="hint" id="scene3d-middot" hidden></p>
-            <p class="hint scene3d-common-assumed" id="scene3d-common-assumed" hidden></p>
-            <div class="button-row scene3d-modes" role="group" id="scene3d-modes">
-              <button type="button" id="scene3d-overview" aria-pressed="true"></button>
-              <button type="button" id="scene3d-plan" aria-pressed="false"></button>
-              <button type="button" id="scene3d-walk" aria-pressed="false"></button>
-              <button type="button" id="scene3d-framing" aria-pressed="false"></button>
-            </div>
-            <details class="scene3d-help" id="scene3d-help"><summary id="scene3d-help-summary"></summary><p id="scene3d-help-text"></p></details>
-            <p class="hint" id="scene3d-reduced" hidden></p>
-            <p class="scene3d-status" id="scene3d-status" role="status"></p>
-            <div id="scene3d-amah" class="scene3d-amah" hidden></div>
-            <div id="scene3d-conflicts" class="scene3d-conflicts" role="note" hidden></div>
-            <div id="tour-bar" class="tour-bar" hidden></div>
-            <div id="scene3d-container" class="scene3d-container"></div>
-            <div id="scene3d-text-list"></div>
-            <div id="scene3d-persona" class="scene3d-persona" hidden></div>
-            <div id="scene3d-unresolved" class="side-list" hidden></div>
-            <div id="scene3d-not-shown" class="side-list" hidden></div>
-            <div id="scene3d-assumptions" class="scene3d-assumptions-block" hidden></div>
-          </div>
-        </div>
-        <p class="hint" id="scene-placeholder"></p>
-        <div id="scene-graph" class="scene-graph"></div>
-        <div id="scene-chooser" class="scene-chooser" hidden></div>
-        <div id="scene-edges"></div>
-        <div id="scene-locations"></div>
-        <div id="scene-other-locations"></div>
-      </section>
-
-      <section class="panel error-panel" id="error-state" role="alert" hidden></section>
-    </main>
-
-    <p class="sr-only" id="live-status" aria-live="polite"></p>
-
-    <dialog id="evidence-dialog" class="evidence-dialog" aria-labelledby="evidence-dialog-title">
-      <p id="evidence-dialog-strip" class="dialog-preview-strip" hidden></p>
-      <div class="dialog-head">
-        <h2 id="evidence-dialog-title"></h2>
-        <button type="button" id="evidence-close" class="close-button"></button>
-      </div>
-      <div id="evidence-body" class="dialog-body"></div>
-    </dialog>
-
-    <dialog id="feedback-dialog" class="evidence-dialog feedback-dialog"></dialog>
-
-    <dialog id="licences-dialog" class="evidence-dialog licences-dialog" aria-labelledby="licences-title">
-      <div class="dialog-head">
-        <h2 id="licences-title"></h2>
-        <button type="button" id="licences-close" class="close-button"></button>
-      </div>
-      <div id="licences-body" class="dialog-body"></div>
-    </dialog>
-
-    <footer class="footer"><p id="footer-note"></p>
-      <p><button type="button" class="report-button" id="licences-button" aria-haspopup="dialog" data-focus-key="licences-open" hidden></button></p>
-      <p><button type="button" class="report-button general-report" id="feedback-footer" aria-haspopup="dialog" data-focus-key="report-general-footer" hidden></button></p>
-    </footer>
-    <script type="module" src="src/presentation/app.js"></script>
-  </body>
+  /* Arrival. */
+  #enter { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center;
+    background: radial-gradient(ellipse at 50% 120%, rgba(255, 150, 70, .45), rgba(8, 10, 30, .86) 60%); }
+  #enter h1 { margin: 0; font-size: clamp(36px, 8vw, 72px); text-shadow: 0 2px 24px rgba(255, 170, 80, .6); }
+  #enter p { margin: 0; font-size: clamp(16px, 2.4vw, 21px); max-width: 32em; }
+  #enter .small { font-size: clamp(13px, 1.7vw, 15px); opacity: .8; font-style: italic; }
+  #go { margin-top: 8px; padding: 14px 36px; font-size: clamp(19px, 2.8vw, 26px); font-weight: 700; color: var(--ink); background: linear-gradient(#ffe3a0, var(--gold));
+    border: 0; border-radius: 99px; box-shadow: 0 6px 0 #9a6a14, 0 10px 30px rgba(255, 170, 60, .45); }
+  @media (max-height: 500px) {
+    #note { width: min(360px, 46vw); max-height: 52vh; bottom: var(--bottom); font-size: 13px; }
+    #clock { font-size: 13px; padding: 6px 10px; } #clock b { font-size: 15px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="stage" role="img" aria-label="הר הבית · The Temple Mount"></canvas>
+<div id="bubbles" aria-live="polite"></div>
+<div id="clock"></div>
+<div id="bar">
+  <button id="sound" aria-pressed="true" aria-label="Sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><g class="on"><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></g><g class="off"><path d="M17 9l5 6"/><path d="M22 9l-5 6"/></g></svg></button>
+  <button id="lang">English</button>
+</div>
+<section id="note" hidden role="region"><header><span id="note-kind"></span><button id="note-fold" aria-label="fold">▾</button></header><p id="note-text" aria-live="polite"></p></section>
+<button id="follow" hidden></button>
+<button id="back" hidden></button>
+<div id="heard" hidden aria-live="polite"></div>
+<div id="fade"></div>
+<div id="stick" aria-hidden="true"><div id="knob"></div></div>
+<div id="keys" data-he="חצים או WASD להליכה · גררו כדי להסתכל · Shift לריצה" data-en="Arrows or WASD to walk · drag to look · Shift to hurry"></div>
+<div id="enter">
+  <h1 data-he="הר הבית, עכשיו" data-en="The Temple Mount, now"></h1>
+  <p data-he="המקדש חי לפי השעון של ירושלים: מה שקורה כאן עכשיו הוא מה שהיה קורה בשעה הזאת. בלילה השומרים, עם שחר העבודה, בשבת ובחגים — שבת וחג." data-en="The Temple lives on Jerusalem's clock: what happens here now is what would happen at this hour. The watch at night, the service at dawn, Shabbat and festivals on their days."></p>
+  <p class="small" data-he="הדמויות, המראות והשעות שבין לבין הם דמיון; מה שהמקורות מספרים מסומן בשם המקור." data-en="The figures, the looks and the hours in between are imagined; what the sources tell is marked with its source."></p>
+  <button id="go" data-he="היכנסו" data-en="Enter" disabled>…</button>
+</div>
+<main id="plain" hidden><h1 id="plain-title"></h1><p id="plain-lead"></p><div id="plain-clock"></div><div id="plain-notes"></div><p id="plain-disclaimer"></p><button id="plain-lang"></button></main>
+<noscript><p style="position:fixed;inset:0;margin:0;padding:24px;background:#0b1030;color:#fff3d6;z-index:9">הר הבית, עכשיו דורש JavaScript. · The Temple Mount, now needs JavaScript.</p></noscript>
+<script type="module" src="./entry.js"></script>
+</body>
 </html>
