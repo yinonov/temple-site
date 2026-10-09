@@ -11,3 +11,7 @@ every sound is synthesised in the browser with Web Audio; text uses the reader's
 
 Bavli Yoma 20b is cited by locator and paraphrased in our own words; no text of the vendored CC BY-SA file is reproduced.
 The English narration is our own wording; the Kulp English Mishnah is not used.
+
+## Voices
+
+Spoken lines (`content/voices/*.mp3`) are generated at authoring time with ElevenLabs text-to-speech, model `eleven_v4`, voice "Daniel" (`onwK4e9ZLuTAKqWW03F9`), under the owner's paid plan, which includes commercial use. Each clip says one line quoted from the public-domain Hebrew Mishnah (or a plain imagined line); none says the divine name or names the slaughter.

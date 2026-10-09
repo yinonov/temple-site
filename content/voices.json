@@ -1,4 +1,24 @@
 {
-  "voice": null,
-  "lines": {}
+  "voice": {
+    "id": "onwK4e9ZLuTAKqWW03F9",
+    "name": "Daniel",
+    "model": "eleven_v4",
+    "language": "he"
+  },
+  "lines": {
+    "שלום עליך": "voices/70eff2a0c1.mp3",
+    "מי שטבל יבא ויפיס": "voices/5362c4ec0c.mp3",
+    "הצביעו": "voices/d7706e7705.mp3",
+    "שלום הכל שלום": "voices/063ca5833c.mp3",
+    "הגיע עת": "voices/6be9c68736.mp3",
+    "ברקאי": "voices/75070d2aca.mp3",
+    "האיר פני כל המזרח עד שהוא בחברון": "voices/d808a2dc3d.mp3",
+    "הין": "voices/60bc08e18d.mp3",
+    "הקטר": "voices/e4c87d2510.mp3",
+    "תקעו והריעו ותקעו": "voices/f8041747c8.mp3",
+    "הגיע זמן הנעילה": "voices/29245d6785.mp3",
+    "יופי לך מזבח": "voices/5cd9b950a3.mp3",
+    "הגבה ידך": "voices/4a80c0c173.mp3",
+    "אבותינו שהיו במקום הזה אחוריהם אל היכל ופניהם קדמה": "voices/ee7831a10e.mp3"
+  }
 }
