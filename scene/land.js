@@ -23,7 +23,7 @@ export function buildLand(rippleCount) {
   }
   geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const ground = put(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), 0, 0, 0, g);
+  const ground = put(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), 0, 0, 0, g);
   ground.receiveShadow = true;
   // A far sliver of water south-east of the plain.
   const sea = put(new THREE.CircleGeometry(520, 40), glow("#7fb6d6", 0.9), 1500, -96.4, 620, g);
@@ -95,7 +95,7 @@ export function buildLand(rippleCount) {
     const one = goat(color, scale);
     one.g.position.set(gx + dx, groundY(gx + dx, gz + dz), gz + dz);
     one.g.rotation.y = turn;
-    one.g.traverse((o) => { if (o.isMesh && o.material.isMeshLambertMaterial) o.castShadow = true; });
+    one.g.traverse((o) => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = true; });
     g.add(one.g);
     return one;
   });
@@ -170,7 +170,7 @@ function buildCity() {
   const base = (x, z) => groundY(x, z);
   const geo = new THREE.BoxGeometry(1, 1, 1);
   geo.translate(0, 0.5, 0);
-  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ flatShading: true }), houses.length);
+  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 0.9 }), houses.length);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
   const tints = ["#e8dcc0", "#dccfb1", "#efe4cb", "#d3c4a2", "#e4d2ae"];
   houses.forEach((h, i) => {
@@ -183,7 +183,7 @@ function buildCity() {
   mesh.receiveShadow = true;
   city.add(mesh);
   // Three tall towers far to the west, and a long wall along the ridge.
-  const stone = new THREE.MeshLambertMaterial({ color: "#d8c8a4", flatShading: true });
+  const stone = new THREE.MeshStandardMaterial({ color: "#d8c8a4", roughness: 0.9 });
   for (const [x, z, h] of [[-640, 40, 42], [-660, 70, 36], [-615, 95, 30]]) {
     const t = new THREE.Mesh(new THREE.BoxGeometry(18, h, 18), stone);
     t.position.set(x, base(x, z) + h / 2, z);

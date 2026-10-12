@@ -24,6 +24,23 @@ const now = () => (frozen ? at : Date.now() + offset + skew);
 if (!params.has("at")) fetch(location.pathname, { method: "HEAD", cache: "no-store" }).then((r) => { const s = Date.parse(r.headers.get("date")) - Date.now(); if (Math.abs(s) > 5000) skew = s; }).catch(() => {});
 const lowPower = matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 600;
 let lang = params.get("lang") === "en" ? "en" : "he";
+// `?stats=1` (fidelity spike): a small readout of frame rate and draw cost, for judging a real phone.
+const stats = params.has("stats") ? (() => {
+  const el = document.createElement("div");
+  el.style.cssText = "position:fixed;left:6px;bottom:6px;z-index:99;direction:ltr;text-align:left;unicode-bidi:isolate;font:11px/1.35 ui-monospace,monospace;color:#fff;background:rgba(0,0,0,.62);padding:5px 7px;border-radius:6px;pointer-events:none;white-space:pre";
+  document.body.append(el);
+  let t0 = performance.now(), n = 0, worst = 0, last = t0, shown = "";
+  const win = [];
+  return { tick(t) {
+    n += 1; worst = Math.max(worst, t - last); last = t;
+    if (t - t0 < 1000) return;
+    const fps = (n * 1000) / (t - t0);
+    win.push(fps); if (win.length > 10) win.shift();
+    const info = scene.info();
+    shown = `${fps.toFixed(0)} fps (min ${Math.min(...win).toFixed(0)} of last ${win.length} s)  worst frame ${worst.toFixed(0)} ms\n${info.calls} draws  ${(info.triangles / 1000).toFixed(0)}k tris  tier ${lowPower ? "low" : "high"}  px ${Math.min(devicePixelRatio, lowPower ? 1.25 : 1.75)}\n${innerWidth}x${innerHeight}  ${[...params.keys()].filter((k) => ["stone", "walls", "hero", "ao"].includes(k)).join("+") || "plain"}`;
+    el.textContent = shown; t0 = t; n = 0; worst = 0;
+  } };
+})() : null;
 let lastNote = null;
 
 const layout = await (await fetch("./content/layout.json")).json();
@@ -32,7 +49,7 @@ const scene = createWorldScene(canvas, layout, { F, TOP: ALTAR.top, ALTAR: [ALTA
 const audio = createAudio();
 const spawn = (params.get("pos") ?? "").split(",").map(Number);
 // Arrive facing whatever is going on now (or where a test asks).
-const walker = createWalker(spawn.length >= 2 && spawn.every(Number.isFinite) ? { x: spawn[0], z: spawn[1], yaw: spawn[2] ?? Math.PI / 2 } : arrivalAt(now()), { gateOpen: () => (world?.env.gate ?? 0) > 0.6 });
+const walker = createWalker(spawn.length >= 2 && spawn.every(Number.isFinite) ? { x: spawn[0], z: spawn[1], yaw: spawn[2] ?? Math.PI / 2, ...(Number.isFinite(spawn[3]) ? { pitch: spawn[3] } : {}) } : arrivalAt(now()), { gateOpen: () => (world?.env.gate ?? 0) > 0.6 });
 
 // Text.
 function setLang(next) {
@@ -302,6 +319,7 @@ function frame(ms) {
   showSpeech(world);
   showNote(world);
   frames += 1;
+  if (stats) stats.tick(performance.now());
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

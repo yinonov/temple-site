@@ -2,9 +2,17 @@
 // the visitor's eyes and is set from outside (controls.js). Looks are placeholders until the art direction is chosen;
 // everything visual goes through this file so a new figure style can replace `figure()` in one place.
 import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { C, lerp, clamp, sstep, mat, glow, flame, put, box, halo, figure, poseFigure, goat } from "./kit.js";
 import { buildTemple } from "./temple.js";
 import { buildLand } from "./land.js";
+import { loadHero, hero, poseHero } from "./hero.js";
+import { loadWalls, wallInstances } from "./walls.js";
+import { buildLab } from "./lab.js";
 import { sunPosition } from "../world/sky.js";
 import { RIPPLES } from "../world/jericho.js";
 
@@ -23,7 +31,11 @@ const skyDir = (v, alt, az) => v.set(Math.sin(az * DEG) * Math.cos(alt * DEG), M
 
 export function createWorldScene(canvas, layout, places, cast, { lowPower = false } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowPower, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1.25 : 1.75));
+  // A software renderer (SwiftShader, llvmpipe) is far too slow for the physically based shaders at full size: draw it at
+  // 60% and skip the post-processing, so walking and tests stay usable.
+  const gl = renderer.getContext(), debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+  const software = !!debugInfo && /swiftshader|llvmpipe|software/i.test(String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)));
+  renderer.setPixelRatio(software ? 0.6 : Math.min(window.devicePixelRatio || 1, lowPower ? 1.25 : 1.75));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -37,9 +49,9 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   // Sky dome: the side of the sun wakes first; a rose and orange band sits on the horizon under it.
   const sunDir = new THREE.Vector3(1, 0, 0);
   const sky = put(new THREE.SphereGeometry(7000, 32, 18), new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { dawn: { value: 0 }, sunDir: { value: sunDir } },
+    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { dawn: { value: 0 }, sunDir: { value: sunDir }, envDesat: { value: 0 } },
     vertexShader: "varying vec3 d; void main(){ d = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-    fragmentShader: `uniform float dawn; uniform vec3 sunDir; varying vec3 d;
+    fragmentShader: `uniform float dawn; uniform float envDesat; uniform vec3 sunDir; varying vec3 d;
       void main(){
         vec3 n = normalize(d);
         float h = max(n.y, 0.0);
@@ -55,6 +67,8 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
         c += vec3(1.0, 0.46, 0.18) * band * toward * exp(-h * 7.0) * 0.95;
         c += vec3(0.8, 0.26, 0.44) * band * (0.3 + 0.7 * toward) * exp(-h * 3.2) * 0.34;
         c += vec3(1.0, 0.82, 0.55) * pow(max(dot(n, sunDir), 0.0), 60.0) * 0.45 * smoothstep(0.4, 0.6, dawn);
+        // Only when baking the light the world receives: less blue, as the sun-warmed stone bounces light into the shade
+        c = mix(c, vec3(dot(c, vec3(0.299, 0.587, 0.114))) * vec3(1.08, 1.0, 0.86), envDesat);
         gl_FragColor = vec4(c, 1.0);
       }`,
   }));
@@ -80,6 +94,24 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   const sunHalo = halo("#ffc27a", 2300, 0.5, sunDisc);
   scene.add(sunDisc);
 
+  // Image-based light: the sky itself, baked to a small environment map each time it has moved enough to matter. It lights
+  // the stone, cloth and metal the way the real sky would, and gives the gold something to reflect.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(sky.geometry, sky.material));
+  let envKey = "", envTarget = null;
+  const bakeEnv = (dawn, sunDeg, azimuth) => {
+    const key = `${Math.round(dawn * 30)}|${Math.round(sunDeg / 2)}|${Math.round(azimuth / 15)}`;
+    if (key === envKey) return;
+    envKey = key;
+    sky.material.uniforms.envDesat.value = 0.6;
+    const next = pmrem.fromScene(envScene, 0, 1, 10000);
+    sky.material.uniforms.envDesat.value = 0;
+    envTarget?.dispose();
+    envTarget = next;
+    scene.environment = next.texture;
+  };
+
   const hemi = new THREE.HemisphereLight("#3a4a9a", "#1a1420", 1);
   const sun = new THREE.DirectionalLight("#ffb070", 0);
   sun.castShadow = true;
@@ -104,6 +136,15 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   const land = buildLand(RIPPLES.length);
   const rippleTimes = RIPPLES.map((r) => r.t);
   scene.add(temple.g, land.g);
+  const lab = new URLSearchParams(location.search).get("lab"); // `?lab=lamp`: a single object on a plinth, in the real light
+  if (lab) scene.add(buildLab(lab, places));
+  // Fidelity spike: `?walls=1` stands dressed-stone bays (built in Blender) in place of the plain tall walls.
+  if (new URLSearchParams(location.search).get("walls") === "1") {
+    loadWalls().then((bays) => {
+      for (const o of [...temple.walls.parts, temple.walls.merlons]) o.visible = false;
+      temple.g.add(wallInstances(bays, temple.walls.runs));
+    }).catch((e) => console.warn("wall assets failed", e));
+  }
 
   const torch = (hand) => {
     box(0.07, 1.5, 0.07, mat("#6e4526"), 0, 0.5, 0, hand);
@@ -118,7 +159,7 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     if (who.look === "ox") {
       // The ox of the first fruits: horns covered with gold (Mishnah Bikkurim 3:3), a placeholder like every figure.
       const ox = goat("#8a5a36", 1.9);
-      ox.head.traverse((o) => { if (o.isMesh && o.geometry.type === "ConeGeometry" && o.position.y > 0.4) o.material = new THREE.MeshLambertMaterial({ color: "#e0b040", emissive: "#3a2806", flatShading: true }); });
+      ox.head.traverse((o) => { if (o.isMesh && o.geometry.type === "ConeGeometry" && o.position.y > 0.4) o.material = new THREE.MeshStandardMaterial({ color: "#e0b040", emissive: "#3a2806", roughness: 0.35, metalness: 0.85 }); });
       ox.g.visible = false;
       figures[who.id] = { g: ox.g, ox: true };
       scene.add(ox.g);
@@ -129,10 +170,48 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     let h = 7;
     for (const ch of who.id) h = (h * 31 + ch.charCodeAt(0)) % 9973;
     const f = figure({ ...look, prop: who.id === "officer" ? torch : null, phase: (h / 9973) * 6 });
-    f.g.traverse((o) => { if (o.isMesh && o.material.isMeshLambertMaterial) o.castShadow = !lowPower; });
+    f.g.traverse((o) => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = !lowPower; });
     f.g.visible = false;
     figures[who.id] = f;
     scene.add(f.g);
+  }
+
+  // Finishing: ambient occlusion in the corners and under the figures, a soft bloom on flame and gold, and tone mapping
+  // last. Weak devices (lowPower: touch or small screens) skip it and draw straight to the screen.
+  let composer = null, bloom = null;
+  if (!lowPower && !software) {
+    composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+    composer.addPass(new RenderPass(scene, camera));
+    const ao = new GTAOPass(scene, camera, 1, 1);
+    ao.updateGtaoMaterial({ radius: 1.1, distanceExponent: 1.4, thickness: 2, scale: 1.1, samples: 12, distanceFallOff: 1, screenSpaceRadius: false });
+    // The occlusion pass draws depth and normals for everything; glows, flames, the sky and other see-through things must
+    // not count as walls, so they are hidden for that pass (relies on the pinned three 0.179.1 addon's hooks).
+    const loose = [], baseHide = ao._overrideVisibility.bind(ao), baseShow = ao._restoreVisibility.bind(ao);
+    ao._overrideVisibility = () => {
+      baseHide();
+      scene.traverse((o) => { if ((o.isMesh || o.isSprite) && o.visible && !(o.material.isMeshStandardMaterial && !o.material.transparent)) { o.visible = false; loose.push(o); } });
+    };
+    ao._restoreVisibility = () => { baseShow(); for (const o of loose.splice(0)) o.visible = true; };
+    if (new URLSearchParams(location.search).get("ao") === "1") composer.addPass(ao); // opt-in: it roughly halves the frame rate on an integrated GPU (see docs/fidelity-spike.md)
+    bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.28, 0.55, 0.92);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+  }
+
+  // Fidelity spike: `?hero=1` swaps the robed people for skinned, animated characters once their files have loaded.
+  if (new URLSearchParams(location.search).get("hero") === "1") {
+    loadHero().then((kit) => {
+      for (const who of cast) {
+        if (!who.look || who.look === "ox" || who.look === "villager" || !figures[who.id]) continue;
+        const old = figures[who.id];
+        const i = Number(who.id.replace(/\D/g, "")) || 0;
+        const fresh = hero(kit, { ...LOOKS[who.look](i), phase: old.phase });
+        fresh.g.visible = false;
+        scene.remove(old.g);
+        figures[who.id] = fresh;
+        scene.add(fresh.g);
+      }
+    }).catch((e) => console.warn("hero assets failed", e));
   }
 
   const tmp = new THREE.Vector3(), moonDir = new THREE.Vector3();
@@ -157,6 +236,8 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
     skyDir(sunDir, sunDeg, azimuth);
     sky.material.uniforms.dawn.value = dawn;
+    bakeEnv(dawn, sunDeg, azimuth);
+    scene.environmentIntensity = lerp(0.9, 0.52, day);
     sky.position.copy(camera.position);
     stars.position.copy(camera.position);
     stars.material.opacity = clamp(1 - dawn * 2.1);
@@ -178,9 +259,9 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     scene.fog.color.copy(horizon);
     scene.fog.density = lerp(0.0042, 0.0016, dawn) * (flight ? 0.4 : 1); // the far land stays clear in flight
     const blush = sstep(0.08, 0.45, dawn) * (1 - sstep(0.55, 1, dawn));
-    hemi.color.copy(C("#3c4fae").lerp(C("#d9a9bd"), blush * 0.7).lerp(C("#cfe1ff"), day * day));
+    hemi.color.copy(C("#3c4fae").lerp(C("#d9a9bd"), blush * 0.7).lerp(C("#e6ebf6"), day * day)); // a paler, less blue sky fill by day keeps the limestone warm in shade
     hemi.groundColor.copy(C("#14122c").lerp(C("#c9a777"), day));
-    hemi.intensity = lerp(1.05, 1.5, day) + blush * 0.7;
+    hemi.intensity = (lerp(1.05, 1.5, day) + blush * 0.7) * 0.35; // the environment map carries most of the ambient light now
     const lit = sstep(0.2, 2.4, sunDeg);
     sun.color.copy(C("#ff8a4a").lerp(C("#fff0d2"), sstep(2, 20, sunDeg)));
     sun.intensity = lit * lerp(3.4, 2.5, sstep(4, 20, sunDeg));
@@ -248,11 +329,11 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
       f.g.visible = near;
       if (!near) continue;
       if (f.ox) { f.g.position.set(...p.pos); if (p.heading !== null) f.g.rotation.y = p.heading - Math.PI / 2; continue; }
-      poseFigure(f, p, time, dt);
+      if (f.hero) poseHero(f, p, world.t / 1000, dt); else poseFigure(f, p, time, dt);
       if (f.held?.userData.flames) for (const fl of f.held.userData.flames) fl.visible = dawn < 0.6;
     }
     land.update(flight ? flight.s : -1000, time, flight?.smell ?? 0, rippleTimes);
-    renderer.render(scene, camera);
+    if (composer) composer.render(); else renderer.render(scene, camera);
   }
 
   return {
@@ -260,6 +341,7 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     camera,
     resize(w, h) {
       renderer.setSize(w, h, false);
+      if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
       camera.aspect = w / h;
       portrait = w < h;
       camera.fov = portrait ? 72 : 62;

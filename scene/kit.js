@@ -7,7 +7,7 @@ export const lerp = (a, b, k) => a + (b - a) * k;
 export const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
 export const sstep = (a, b, x) => { const k = clamp((x - a) / (b - a)); return k * k * (3 - 2 * k); };
 
-export const mat = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, flatShading: true, ...extra });
+export const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.82, metalness: 0, ...extra });
 export const glow = (color, opacity = 1, extra = {}) => new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity, depthWrite: opacity >= 1, fog: false, ...extra });
 export const flame = (color, opacity = 0.9) => glow(color, opacity, { blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
 
@@ -74,6 +74,29 @@ export const pavingTexture = () => canvasTexture(256, (g, n) => {
     g.strokeRect(i * s + 1, j * s + 1, s - 2, s - 2);
   }
 });
+
+// Fidelity spike: real photographic-scale stone and paving (ambientCG CC0, see credits.md), shared by every material that
+// asks for them. Textures load in the background; the materials show plain colour until they arrive.
+const files = new THREE.TextureLoader();
+const asset = (name, srgb) => {
+  const t = files.load(new URL(`../assets/${name}`, import.meta.url).href);
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 16;
+  return t;
+};
+let stoneSets = null;
+/** Texture sets, each with the metres one repeat covers (`tile`). */
+export const stoneKit = () => stoneSets ?? (stoneSets = {
+  marble: { map: asset("stone/marble-color.jpg", true), normalMap: asset("walls/stone-normal.jpg"), roughnessMap: asset("walls/stone-rough.jpg"), tile: 4.8 },
+  ashlar: { map: asset("walls/stone-color.jpg", true), normalMap: asset("walls/stone-normal.jpg"), roughnessMap: asset("walls/stone-rough.jpg"), tile: 4.8 },
+  paving: { map: asset("stone/paving-color.jpg", true), normalMap: asset("stone/paving-normal.jpg"), roughnessMap: asset("stone/paving-rough.jpg"), tile: 9 },
+});
+export const pbrStone = (set, color = "#ffffff", extra = {}) => {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 1, metalness: 0, map: set.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, ...extra });
+  m.userData.tile = set.tile;
+  return m;
+};
 
 let haloTex = null;
 export const haloTexture = () => haloTex ?? (haloTex = canvasTexture(128, (g, n) => {

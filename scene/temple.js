@@ -3,20 +3,24 @@
 // everything added here (walls, columns, trim, colours) is imagination.
 import * as THREE from "three";
 import { LAMP_STANDS } from "../world/places.js";
-import { mat, glow, flame, put, box, halo, pool, tileBox, ashlarTexture, pavingTexture, curtainTexture, haloTexture } from "./kit.js";
+import { mat, glow, flame, put, box, halo, pool, tileBox, ashlarTexture, pavingTexture, curtainTexture, haloTexture, stoneKit, pbrStone } from "./kit.js";
 
 export function buildTemple(layout, places) {
   const { F, TOP } = places;
   const [AX, , AZ] = places.ALTAR;
   const g = new THREE.Group();
   const ashlar = ashlarTexture(), paving = pavingTexture();
-  const stone = (color) => mat(color, { map: ashlar });
+  // `?stone=1` (fidelity spike): the same surfaces with real stone and paving maps, tinted instead of drawn in code.
+  const fine = new URLSearchParams(location.search).get("stone") === "1", kit = fine ? stoneKit() : null;
+  const stone = fine ? (color) => (({ "#e6dabd": () => pbrStone(kit.ashlar), "#f6f1e6": () => pbrStone(kit.marble, "#fffdf8"), "#f3eee2": () => pbrStone(kit.marble), "#cdbf9f": () => pbrStone(kit.ashlar, "#ddd0b4") })[color]?.() ?? pbrStone(kit.ashlar)) : (color) => mat(color, { map: ashlar });
   const wall = stone("#e6dabd"), marble = stone("#f6f1e6"), white = stone("#f3eee2"), plinth = stone("#cdbf9f");
-  const floors = { platform: mat("#cfc1a0", { map: paving }), court: mat("#e2d6b9", { map: paving }), barrier: mat("#b9a57c") };
-  const gold = new THREE.MeshLambertMaterial({ color: "#dba935", emissive: "#3a2806", flatShading: true });
-  const bronze = new THREE.MeshLambertMaterial({ color: "#b0763a", emissive: "#2a1606", flatShading: true });
+  const floors = fine
+    ? { platform: pbrStone(kit.paving, "#ede3cc"), court: pbrStone(kit.paving, "#ffffff"), barrier: mat("#b9a57c") }
+    : { platform: mat("#cfc1a0", { map: paving }), court: mat("#e2d6b9", { map: paving }), barrier: mat("#b9a57c") };
+  const gold = new THREE.MeshStandardMaterial({ color: "#dba935", emissive: "#3a2806", roughness: 0.32, metalness: 0.9 });
+  const bronze = new THREE.MeshStandardMaterial({ color: "#b0763a", emissive: "#2a1606", roughness: 0.45, metalness: 0.8 });
   const cedar = mat("#6e4526"), dark = mat("#2a1d14"), roof = mat("#b9805a");
-  const block = (sx, sy, sz, material, x, y, z) => put(tileBox(sx, sy, sz), material, x, y, z, g);
+  const block = (sx, sy, sz, material, x, y, z) => put(tileBox(sx, sy, sz, material.userData.tile ?? 6), material, x, y, z, g);
   // A block given by its extents: x0..x1, y0..y1, z0..z1.
   const span = (x0, x1, y0, y1, z0, z1, material) => block(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0), material, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
 
@@ -28,15 +32,18 @@ export function buildTemple(layout, places) {
   }
 
   // Instanced repeats: merlons on the walls and the columns of the court.
-  const merlons = [], columns = [];
-  const crenellate = (x0, x1, z0, z1, y) => {
+  const merlons = [], wallMerlons = [], columns = [];
+  const wallParts = [], wallRuns = []; // the tall walls, so a finer kit of dressed-stone bays can stand in for them
+  const crenellate = (x0, x1, z0, z1, y, into = merlons) => {
     const n = Math.max(1, Math.round(Math.hypot(x1 - x0, z1 - z0) / 2.6));
-    for (let i = 0; i <= n; i += 1) merlons.push([x0 + ((x1 - x0) * i) / n, y + 0.55, z0 + ((z1 - z0) * i) / n]);
+    for (let i = 0; i <= n; i += 1) into.push([x0 + ((x1 - x0) * i) / n, y + 0.55, z0 + ((z1 - z0) * i) / n]);
   };
   const run = (x0, x1, z0, z1, y0, h, t = 1.6, material = wall) => {
     const alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0);
-    span(alongX ? x0 : x0 - t / 2, alongX ? x1 : x1 + t / 2, y0, y0 + h, alongX ? z0 - t / 2 : z0, alongX ? z1 + t / 2 : z1, material);
-    crenellate(x0, x1, z0, z1, y0 + h);
+    const tall = h >= 7 && t === 1.6;
+    const part = span(alongX ? x0 : x0 - t / 2, alongX ? x1 : x1 + t / 2, y0, y0 + h, alongX ? z0 - t / 2 : z0, alongX ? z1 + t / 2 : z1, material);
+    crenellate(x0, x1, z0, z1, y0 + h, tall ? wallMerlons : merlons);
+    if (tall) { wallParts.push(part); wallRuns.push({ x0, x1, z0, z1, y0, h }); }
   };
 
   // The inner court's walls and the gatehouse on the east (the gate Yonatan's father keeps).
@@ -71,7 +78,10 @@ export function buildTemple(layout, places) {
   span(70.6, 73.4, WF + 7, WF + 9.6, -51.4, -42.2, wall);
   for (const [a, b2, c, d] of [[-120, 120, -120, -120], [-120, 120, 120, 120], [-120, -120, -120, 120], [120, 120, -120, 120]]) run(a, b2, c, d, 0, 1.1, 1.2, plinth); // a parapet on the Mount's edge, so the city can be seen
 
-  const merlonMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1.2, 1.1, 1.2), wall, merlons.length);
+  const merlonMesh = new THREE.InstancedMesh(fine ? tileBox(1.2, 1.1, 1.2, wall.userData.tile) : new THREE.BoxGeometry(1.2, 1.1, 1.2), wall, merlons.length);
+  const wallMerlonMesh = new THREE.InstancedMesh(fine ? tileBox(1.2, 1.1, 1.2, wall.userData.tile) : new THREE.BoxGeometry(1.2, 1.1, 1.2), wall, wallMerlons.length);
+  wallMerlons.forEach((p, i) => wallMerlonMesh.setMatrixAt(i, new THREE.Matrix4().makeTranslation(...p)));
+  g.add(wallMerlonMesh);
   const columnMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.58, 6.2, 10), marble, columns.length);
   const m4 = new THREE.Matrix4();
   merlons.forEach((p, i) => merlonMesh.setMatrixAt(i, m4.makeTranslation(...p)));
@@ -94,7 +104,7 @@ export function buildTemple(layout, places) {
   span(-77.2, H.x1, F, ROOF, H.z1, -30, white);
   span(H.x0 - 0.6, H.x1, HY, ROOF, H.z0, H.z1, white);
   span(-77.2, H.inner - 0.08, F, ROOF, H.z0, H.z1, white);
-  const leaf = new THREE.MeshLambertMaterial({ color: "#e2b85c", emissive: "#3a2808", map: ashlar });
+  const leaf = new THREE.MeshStandardMaterial({ color: "#e2b85c", emissive: "#3a2808", map: ashlar, roughness: 0.4, metalness: 0.7 });
   span(H.x0, H.x1, F, HY, H.z0, H.z0 + 0.05, leaf);
   span(H.x0, H.x1, F, HY, H.z1 - 0.05, H.z1, leaf);
   span(H.x1 - 0.05, H.x1, F, HY, H.z0, DZ0, leaf);
@@ -105,7 +115,7 @@ export function buildTemple(layout, places) {
   // Two curtains a cubit apart (Mishnah Yoma 5:1; Rabbi Yose says one). Woven colours are imagined.
   const weave = curtainTexture();
   weave.repeat.set(3, 1);
-  const cloth = new THREE.MeshLambertMaterial({ map: weave });
+  const cloth = new THREE.MeshStandardMaterial({ map: weave, roughness: 0.95 });
   for (const x of [H.curtain, H.inner]) put(new THREE.BoxGeometry(0.06, HY - F, H.z1 - H.z0), cloth, x - 0.03, (F + HY) / 2, AZ, g);
   span(H.x0 + 0.05, H.x0 + 0.25, HY - 0.6, HY - 0.3, H.z0, H.z1, gold); // the rod it hangs from
   // The menorah, its lamps along the length of the house (Menachot 11:6), and the stone with three steps before it
@@ -183,13 +193,13 @@ export function buildTemple(layout, places) {
   spill.position.set(BX + 8, F + 0.06, AZ);
 
   // The altar: whitewashed tiers with four horns, and the ramp on the south.
-  const altarStone = mat("#f4efe3", { map: ashlar });
+  const altarStone = fine ? pbrStone(kit.marble, "#fbf8ee") : mat("#f4efe3", { map: ashlar }); // whitewashed
   block(15.4, 0.48, 15.4, altarStone, AX, F + 0.24, AZ);
   block(14.4, 2.4, 14.4, altarStone, AX, F + 1.68, AZ);
   block(13.44, 1.44, 13.44, altarStone, AX, F + 3.6, AZ);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) block(0.6, 0.6, 0.6, altarStone, AX + sx * 6.42, TOP + 0.3, AZ + sz * 6.42);
   const [RZ0, RZ1] = [-23, -40.1];
-  const rampGeo = tileBox(7.7, TOP - F, RZ0 - RZ1);
+  const rampGeo = tileBox(7.7, TOP - F, RZ0 - RZ1, altarStone.userData.tile ?? 6);
   const rp = rampGeo.attributes.position;
   for (let i = 0; i < rp.count; i += 1) if (rp.getZ(i) > 0 && rp.getY(i) > 0) rp.setY(i, -(TOP - F) / 2 + 0.04);
   rampGeo.computeVertexNormals();
@@ -255,15 +265,15 @@ export function buildTemple(layout, places) {
 
   // Everything that moves or glows stays a separate object; the rest of the stonework is merged into one mesh per
   // material, which turns hundreds of draw calls into a handful.
-  const dynamic = new Set([festive.willows, festive.stands, festive.chanukah, lampGlow, ...lamps, doorHalo, spill, bolt, fire, laver, ...doors.map((d) => d.hinge), ...torches.flatMap((t) => [t.f, t.h])]);
+  const dynamic = new Set([...wallParts, festive.willows, festive.stands, festive.chanukah, lampGlow, ...lamps, doorHalo, spill, bolt, fire, laver, ...doors.map((d) => d.hinge), ...torches.flatMap((t) => [t.f, t.h])]);
   mergeStatic(g, dynamic);
   g.traverse((o) => {
     if (!o.isMesh) return;
-    const solid = o.material.isMeshLambertMaterial && !o.material.transparent;
+    const solid = o.material.isMeshStandardMaterial && !o.material.transparent;
     o.castShadow = solid;
     o.receiveShadow = solid;
   });
-  return { g, gold, bronze, doors, bolt, lamps, lampGlow, festive, doorHalo, spill, wheel, torches, fire: { emberBed, flames, halo: fireHalo, smoke, sparks } };
+  return { g, walls: { parts: wallParts, merlons: wallMerlonMesh, runs: wallRuns }, gold, bronze, doors, bolt, lamps, lampGlow, festive, doorHalo, spill, wheel, torches, fire: { emberBed, flames, halo: fireHalo, smoke, sparks } };
 }
 
 function mergeStatic(root, dynamic) {
