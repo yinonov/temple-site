@@ -10,4 +10,4 @@ Built site only. A place you visit rather than a game you play: the Temple Mount
 - Code: MIT (`LICENSE`); three.js: MIT (`vendor/three/LICENSE`).
 - A playground: it may change or break without notice.
 
-Built from source commit 71a04c1.
+Built from source commit e52ad2e.

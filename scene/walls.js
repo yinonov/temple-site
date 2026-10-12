@@ -4,13 +4,14 @@
 // The stone texture is ambientCG Tiles144 (CC0), graded paler; see app/content/credits.md.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { tierName } from "./kit.js";
 
-const BASE = new URL("../assets/walls/", import.meta.url).href;
+const ASSETS = new URL("../assets/", import.meta.url).href, BASE = `${ASSETS}walls/`;
 const BAY = 8, BODY = 7.57, VARIANTS = 4; // bay length, height of the body up to the cornice's top, number of layouts
 
 export async function loadWalls() {
   const loader = new GLTFLoader(), textures = new THREE.TextureLoader();
-  const load = (name, srgb) => textures.loadAsync(BASE + name).then((t) => {
+  const load = (name, srgb) => textures.loadAsync(ASSETS + tierName(`walls/${name}`)).then((t) => {
     t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     t.flipY = false; // the UVs follow the glTF convention (origin top left)
     t.anisotropy = 8;
@@ -28,7 +29,7 @@ export async function loadWalls() {
 }
 
 /** Stand bays along each run ({ x0, x1, z0, z1, y0, h }), the way temple.js laid its plain walls. */
-export function wallInstances(bays, runs) {
+export function wallInstances(bays, runs, { shadows = true } = {}) {
   const placements = bays.map(() => []);
   runs.forEach((r, k) => {
     const alongX = Math.abs(r.x1 - r.x0) > Math.abs(r.z1 - r.z0);
@@ -47,7 +48,7 @@ export function wallInstances(bays, runs) {
     const mesh = new THREE.InstancedMesh(bay.geometry, bay.material, Math.max(1, placements[v].length));
     placements[v].forEach((m, i) => mesh.setMatrixAt(i, m));
     mesh.count = placements[v].length;
-    mesh.castShadow = true;
+    mesh.castShadow = shadows;
     mesh.receiveShadow = true;
     mesh.frustumCulled = false;
     group.add(mesh);

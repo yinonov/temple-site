@@ -7,7 +7,7 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { C, lerp, clamp, sstep, mat, glow, flame, put, box, halo, figure, poseFigure, goat } from "./kit.js";
+import { C, lerp, clamp, sstep, mat, glow, flame, put, box, halo, figure, poseFigure, goat, flag, setLowTextures } from "./kit.js";
 import { buildTemple } from "./temple.js";
 import { buildLand } from "./land.js";
 import { loadHero, hero, poseHero } from "./hero.js";
@@ -132,17 +132,19 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   const lampLight = new THREE.PointLight("#ffc46a", 6, 18, 1.6);
   lampLight.position.set(-52.2, F + 2.2, -43.9);
   scene.add(lampLight);
-  const temple = buildTemple(layout, places);
+  setLowTextures(lowPower || software);
+  const temple = buildTemple(layout, places, { fine: flag("stone", true) }); // `?stone=0` for the plain look
   const land = buildLand(RIPPLES.length);
   const rippleTimes = RIPPLES.map((r) => r.t);
   scene.add(temple.g, land.g);
   const lab = new URLSearchParams(location.search).get("lab"); // `?lab=lamp`: a single object on a plinth, in the real light
   if (lab) scene.add(buildLab(lab, places));
-  // Fidelity spike: `?walls=1` stands dressed-stone bays (built in Blender) in place of the plain tall walls.
-  if (new URLSearchParams(location.search).get("walls") === "1") {
+  // Dressed-stone bays (built in Blender) stand in place of the plain tall walls; `?walls=0` keeps the plain ones. Software
+  // renderers keep the plain walls by default (too slow); small screens get bays that cast no shadows.
+  if (flag("walls", !software)) {
     loadWalls().then((bays) => {
       for (const o of [...temple.walls.parts, temple.walls.merlons]) o.visible = false;
-      temple.g.add(wallInstances(bays, temple.walls.runs));
+      temple.g.add(wallInstances(bays, temple.walls.runs, { shadows: !lowPower }));
     }).catch((e) => console.warn("wall assets failed", e));
   }
 

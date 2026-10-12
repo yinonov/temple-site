@@ -78,8 +78,15 @@ export const pavingTexture = () => canvasTexture(256, (g, n) => {
 // Fidelity spike: real photographic-scale stone and paving (ambientCG CC0, see credits.md), shared by every material that
 // asks for them. Textures load in the background; the materials show plain colour until they arrive.
 const files = new THREE.TextureLoader();
+// Small screens and software renderers get half-resolution copies (-1k) of the big maps: a quarter of the memory, half the download.
+const HALF = new Set(["walls/stone-color.jpg", "walls/stone-normal.jpg", "walls/wall-ao-1.jpg", "walls/wall-ao-2.jpg", "walls/wall-ao-3.jpg", "walls/wall-ao-4.jpg", "stone/paving-color.jpg", "stone/paving-normal.jpg", "stone/marble-color.jpg"]);
+let lowTextures = false;
+export const setLowTextures = (low) => { lowTextures = low; };
+export const tierName = (rel) => (lowTextures && HALF.has(rel) ? rel.replace(/\.jpg$/, "-1k.jpg") : rel);
+/** A query switch that is on unless `?name=0` (or off unless `?name=1` when `dflt` is false). */
+export const flag = (name, dflt = false) => { const v = new URLSearchParams(location.search).get(name); return v === null ? dflt : v !== "0"; };
 const asset = (name, srgb) => {
-  const t = files.load(new URL(`../assets/${name}`, import.meta.url).href);
+  const t = files.load(new URL(`../assets/${tierName(name)}`, import.meta.url).href);
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 16;

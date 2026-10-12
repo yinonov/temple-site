@@ -5,13 +5,13 @@ import * as THREE from "three";
 import { LAMP_STANDS } from "../world/places.js";
 import { mat, glow, flame, put, box, halo, pool, tileBox, ashlarTexture, pavingTexture, curtainTexture, haloTexture, stoneKit, pbrStone } from "./kit.js";
 
-export function buildTemple(layout, places) {
+export function buildTemple(layout, places, { fine = false } = {}) {
   const { F, TOP } = places;
   const [AX, , AZ] = places.ALTAR;
   const g = new THREE.Group();
   const ashlar = ashlarTexture(), paving = pavingTexture();
-  // `?stone=1` (fidelity spike): the same surfaces with real stone and paving maps, tinted instead of drawn in code.
-  const fine = new URLSearchParams(location.search).get("stone") === "1", kit = fine ? stoneKit() : null;
+  // By default (`?stone=0` turns it off): real stone and paving maps, tinted, instead of textures drawn in code.
+  const kit = fine ? stoneKit() : null;
   const stone = fine ? (color) => (({ "#e6dabd": () => pbrStone(kit.ashlar), "#f6f1e6": () => pbrStone(kit.marble, "#fffdf8"), "#f3eee2": () => pbrStone(kit.marble), "#cdbf9f": () => pbrStone(kit.ashlar, "#ddd0b4") })[color]?.() ?? pbrStone(kit.ashlar)) : (color) => mat(color, { map: ashlar });
   const wall = stone("#e6dabd"), marble = stone("#f6f1e6"), white = stone("#f3eee2"), plinth = stone("#cdbf9f");
   const floors = fine
