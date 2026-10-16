@@ -1,0 +1,107 @@
+{
+ "note": "Written by app/scripts/compress-assets.js. textures: source .jpg -> KTX2 variants (plain: for glTF-style UVs, flip: for three.js's default image orientation); meshes: GLBs stored with Meshopt compression.",
+ "textures": {
+  "courtyard/courtyard-ground-ao-1k.jpg": {
+   "flip": "courtyard/courtyard-ground-ao-1k.flip.ktx2"
+  },
+  "courtyard/courtyard-ground-ao.jpg": {
+   "flip": "courtyard/courtyard-ground-ao.flip.ktx2"
+  },
+  "figures/body-ao.jpg": {
+   "plain": "figures/body-ao.ktx2"
+  },
+  "figures/body-color.jpg": {
+   "plain": "figures/body-color.ktx2"
+  },
+  "figures/eyes-color.jpg": {
+   "plain": "figures/eyes-color.ktx2"
+  },
+  "figures/garment-ao.jpg": {
+   "plain": "figures/garment-ao.ktx2"
+  },
+  "props/dressing/ash-pan/ash-pan-ao.jpg": {
+   "plain": "props/dressing/ash-pan/ash-pan-ao.ktx2"
+  },
+  "props/dressing/ash-pan/ash-pan-color.jpg": {
+   "plain": "props/dressing/ash-pan/ash-pan-color.ktx2"
+  },
+  "props/dressing/banner/banner-ao.jpg": {
+   "plain": "props/dressing/banner/banner-ao.ktx2"
+  },
+  "props/dressing/banner/banner-color.jpg": {
+   "plain": "props/dressing/banner/banner-color.ktx2"
+  },
+  "props/dressing/basket/basket-ao.jpg": {
+   "plain": "props/dressing/basket/basket-ao.ktx2"
+  },
+  "props/dressing/basket/basket-color.jpg": {
+   "plain": "props/dressing/basket/basket-color.ktx2"
+  },
+  "props/dressing/bench/bench-ao.jpg": {
+   "plain": "props/dressing/bench/bench-ao.ktx2"
+  },
+  "props/dressing/lamp-stand/lamp-stand-ao.jpg": {
+   "plain": "props/dressing/lamp-stand/lamp-stand-ao.ktx2"
+  },
+  "props/dressing/lamp-stand/lamp-stand-color.jpg": {
+   "plain": "props/dressing/lamp-stand/lamp-stand-color.ktx2"
+  },
+  "props/dressing/water-vessel/water-vessel-ao.jpg": {
+   "plain": "props/dressing/water-vessel/water-vessel-ao.ktx2"
+  },
+  "props/dressing/water-vessel/water-vessel-color.jpg": {
+   "plain": "props/dressing/water-vessel/water-vessel-color.ktx2"
+  },
+  "props/dressing/wood-stack/wood-stack-ao.jpg": {
+   "plain": "props/dressing/wood-stack/wood-stack-ao.ktx2"
+  },
+  "props/dressing/wood-stack/wood-stack-color.jpg": {
+   "plain": "props/dressing/wood-stack/wood-stack-color.ktx2"
+  },
+  "stone/marble-color-1k.jpg": {
+   "flip": "stone/marble-color-1k.flip.ktx2"
+  },
+  "stone/marble-color.jpg": {
+   "flip": "stone/marble-color.flip.ktx2"
+  },
+  "stone/paving-color-1k.jpg": {
+   "flip": "stone/paving-color-1k.flip.ktx2"
+  },
+  "stone/paving-color.jpg": {
+   "flip": "stone/paving-color.flip.ktx2"
+  },
+  "walls/stone-color-1k.jpg": {
+   "plain": "walls/stone-color-1k.ktx2",
+   "flip": "walls/stone-color-1k.flip.ktx2"
+  },
+  "walls/stone-color.jpg": {
+   "plain": "walls/stone-color.ktx2",
+   "flip": "walls/stone-color.flip.ktx2"
+  },
+  "walls/wall-ao-1-1k.jpg": {
+   "plain": "walls/wall-ao-1-1k.ktx2"
+  },
+  "walls/wall-ao-1.jpg": {
+   "plain": "walls/wall-ao-1.ktx2"
+  },
+  "walls/wall-ao-2-1k.jpg": {
+   "plain": "walls/wall-ao-2-1k.ktx2"
+  },
+  "walls/wall-ao-2.jpg": {
+   "plain": "walls/wall-ao-2.ktx2"
+  },
+  "walls/wall-ao-3-1k.jpg": {
+   "plain": "walls/wall-ao-3-1k.ktx2"
+  },
+  "walls/wall-ao-3.jpg": {
+   "plain": "walls/wall-ao-3.ktx2"
+  },
+  "walls/wall-ao-4-1k.jpg": {
+   "plain": "walls/wall-ao-4-1k.ktx2"
+  },
+  "walls/wall-ao-4.jpg": {
+   "plain": "walls/wall-ao-4.ktx2"
+  }
+ },
+ "meshes": []
+}

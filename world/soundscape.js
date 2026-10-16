@@ -7,6 +7,7 @@ import { compileDay, hash } from "./schedule.js";
 import { CAST_BY_ID } from "./cast.js";
 import { zoneOf, LAMP_STANDS, ALTAR } from "./places.js";
 import { BEAT, SECTION, REST } from "./song.js";
+import { EMITTERS, DYNAMIC, DYNAMIC_SLOTS, WORK_POSES, PRAYER_POSES, contextOf, windLevel } from "./emitters.js";
 
 const MIN = 60000;
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
@@ -25,7 +26,6 @@ export const SITES = [...PENS, ...DOVES, ...ROOF, ...OLIVES, CITY];
 /** Months of the Hebrew year when the swifts are here (Adar to Tammuz) and when the crickets sing (Iyar to Tishrei). */
 const SWIFTS = new Set([12, 13, 1, 2, 3, 4]);
 const CRICKETS = new Set([2, 3, 4, 5, 6, 7]);
-const WINTER = new Set([8, 9, 10, 11, 12, 13]);
 
 /**
  * When the animals are still: through the morning offering and the afternoon one (an hour before to well after), all
@@ -73,11 +73,9 @@ const human = (id) => { const look = CAST_BY_ID.get(id)?.look; return look && lo
  */
 export function soundscapeAt(world, me) {
   const { env, calendar: cal, time, people } = world;
-  const key = dayKey(world.t);
   const day = time.part === "day";
-  // Wind: calm at night and dawn, rising through the afternoon, rougher in winter; each day has its own temper.
-  const hourly = day ? 0.22 + 0.3 * clamp((time.hour - 3) / 6) - 0.12 * clamp((2 - time.hour) / 2) : 0.18;
-  const wind = clamp(hourly * (WINTER.has(cal.month) ? 1.35 : 1) * (0.75 + 0.5 * hash(key, "wind")) * (me.y > 10 ? 1.25 : 1));
+  // Wind: calm at night and dawn, rising through the afternoon, rougher in winter; each day has its own temper (emitters.js).
+  const wind = windLevel(world, me.y);
   // The city works on weekdays by day; on Shabbat and festival days it is still.
   const city = day && !cal.holy ? 0.16 * env.dawn : 0;
   const crickets = !day && CRICKETS.has(cal.month) ? 0.14 : 0;
@@ -136,6 +134,29 @@ export function soundscapeAt(world, me) {
       crowd: +total.toFixed(3), throng: +throng.toFixed(3), present, walkers: steps.length, still: animalsStill(world.t, cal),
     },
   };
+}
+
+// ---- The courtyard's emitters -------------------------------------------------------------------------------------
+/**
+ * The positioned sound sources at an instant, as { id, voice, at, seed, refDistance, rolloff, level } with `level` 0 to 1
+ * for the sound being on at all (not for distance: the listener's panners attenuate by `refDistance` and `rolloff`, see
+ * emitters.js). Fixed ones come from the data; people at work and at prayer are heard where they stand, the nearest two of each
+ * (`at` is null in a slot nobody fills, with level 0). Pure: the same world and listener give the same list.
+ */
+export function emittersAt(world, me) {
+  const c = contextOf(world, me.y);
+  const out = EMITTERS.filter((e) => e.kind === "sound").map((e) => ({ id: e.id, voice: e.voice, at: e.at, seed: e.seed, refDistance: e.refDistance, rolloff: e.rolloff, level: +(e.gain * clamp(e.activeWhen(c))).toFixed(3) }));
+  const people = Object.values(world.people).filter((p) => p.visible && human(p.id));
+  for (const [kind, poses] of [["work", WORK_POSES], ["murmur", PRAYER_POSES]]) {
+    const def = DYNAMIC[kind];
+    const nearest = people.filter((p) => poses.has(p.pose)).map((p) => ({ p, d: dist(p.pos, me) })).filter((x) => x.d < 45)
+      .sort((a, b) => a.d - b.d || (a.p.id < b.p.id ? -1 : 1)).slice(0, DYNAMIC_SLOTS);
+    for (let i = 0; i < DYNAMIC_SLOTS; i += 1) {
+      const n = nearest[i];
+      out.push({ id: `${kind}-${i + 1}`, voice: def.voice, at: n ? [n.p.pos[0], n.p.pos[1] + 1.2, n.p.pos[2]] : null, seed: def.seedBase + i, refDistance: def.refDistance, rolloff: def.rolloff, level: n ? def.gain : 0 });
+    }
+  }
+  return out;
 }
 
 // ---- The Levites' song -------------------------------------------------------------------------------------------

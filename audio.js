@@ -1,6 +1,9 @@
 // All sound is synthesised with Web Audio; nothing is downloaded or recorded. Starts on the first tap.
 // What is heard (and from where) comes from `world/soundscape.js`; this file only renders it. Sources sit in space
 // through equal-power panners (cheap enough for phones); distance is already in each level, so panners only turn.
+// The courtyard's positioned emitters (world/emitters.js) are the other way round: their level says only whether the sound is on,
+// and each has one persistent PannerNode with the inverse distance model (refDistance, rolloff), HRTF on a desktop and
+// equal-power on a phone, so distance is applied exactly once, by the panner.
 export function createAudio() {
   let ctx = null, master, mix, sfx, amb, mus, bus, noiseBuf, beds = null, duck = 1, meter = null, listened = null, muted = false, spoken = 0;
   const clips = new Map(); // url -> Promise<AudioBuffer | null>, so each clip is fetched and decoded once
@@ -98,6 +101,11 @@ export function createAudio() {
     swift: () => { for (let i = 0; i < 4; i += 1) tone("sine", 5200 + Math.random() * 900, 4100, 0.12, 0.05, i * 0.16 + Math.random() * 0.05, 0.01, 9000); },
     jackal: () => { for (let k = 0; k < 3; k += 1) { const f = 560 + k * 90; bleat(f, f * 1.4, 1.6, 0.06, k * 0.5, 900 + k * 200, 5); } },
     hammer: () => { burst(2200, 9, 0.04, 0.3); tone("sine", 260, 200, 0.05, 0.1, 0, 0.005); },
+    // The courtyard's own (emitters): wood set down, ash raked, a drop at the laver, a bird's three notes.
+    thunk: () => { burst(240, 1.5, 0.14, 0.55, 0, "lowpass"); tone("sine", 150, 90, 0.1, 0.3, 0, 0.004, 600); if (Math.random() < 0.4) burst(900, 3, 0.05, 0.12, 0.09); },
+    scrape: () => { burst(2600 + Math.random() * 600, 0.9, 0.6, 0.2, 0, "bandpass"); burst(1500, 0.7, 0.5, 0.1, 0.12, "bandpass"); },
+    drip: () => { const f = 1100 + Math.random() * 900; tone("sine", f, f * 0.45, 0.09, 0.12, 0, 0.004, 4000); },
+    chirp: () => { const f = 3000 + Math.random() * 1600; [0, 0.1, 0.22].forEach((d, i) => tone("sine", f * (1 + i * 0.12), f * (1.25 + i * 0.1), 0.07, 0.07, d, 0.008, 7000)); },
     step: () => { burst(1400, 1.2, 0.05, 0.16); burst(220, 1, 0.07, 0.2, 0, "lowpass"); },
     bare: () => { burst(320, 0.9, 0.08, 0.22, 0, "lowpass"); },
   };
@@ -186,6 +194,45 @@ export function createAudio() {
       own: { phase: 0 },
     };
   }
+  // ---- The courtyard's positioned emitters (world/emitters.js) ------------------------------------------------------
+  // One persistent chain per emitter: a source (a noise bed, or the voice calls below) into a gain and a PannerNode with the
+  // inverse distance model. Transients (a drop, a thunk, a bird's notes) go through the same panner, so nothing is created per event.
+  const chains = new Map(); // id -> { e, panner, gain, rate, voices, acc, bed? }
+  const hrtf = typeof matchMedia === "function" && !matchMedia("(pointer: coarse)").matches;
+  const EMITTER_VOICES = {
+    // voice: a looping bed (filters, the loudness' own slow movements) and/or transients (voice id, events per second)
+    water: { bed: { filters: [["highpass", 500, 0.7], ["bandpass", 2600, 0.8]], lfo: [[3.1, 0.3], [7.3, 0.25]], base: 0.55, level: 0.5 }, drip: ["drip", 1.4] },
+    cloth: { bed: { filters: [["bandpass", 700, 0.5], ["lowpass", 1600, 0.5]], lfo: [[0.17, 0.45], [0.43, 0.2]], base: 0.55, level: 0.35 } },
+    murmur: { bed: { filters: [["bandpass", 330, 2.2], ["bandpass", 850, 3]], lfo: [[2.3, 0.28], [3.7, 0.2], [5.9, 0.12]], base: 0.55, level: 0.55 } },
+    work: { events: [["thunk", 0.5], ["scrape", 0.3]] },
+    birds: { events: [["chirp", 0.7]] },
+  };
+  function emitterChain(e) {
+    let c = chains.get(e.id);
+    if (c) return c;
+    const def = EMITTER_VOICES[e.voice];
+    if (!def) return null;
+    const p = ctx.createPanner();
+    p.panningModel = hrtf ? "HRTF" : "equalpower";
+    p.distanceModel = "inverse"; p.refDistance = e.refDistance; p.rolloffFactor = e.rolloff; p.maxDistance = 10000;
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(p).connect(amb);
+    c = { e, panner: p, gain, def, acc: Math.random(), bedGain: null, positioned: false };
+    if (def.bed) {
+      const src = noise(), am = ctx.createGain();
+      let n = src;
+      for (const [type, freq, q] of def.bed.filters) { const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; n.connect(f); n = f; }
+      am.gain.value = def.bed.base;
+      for (const [rate, depth] of def.bed.lfo) { const o = ctx.createOscillator(), d = ctx.createGain(); o.frequency.value = rate * (0.9 + Math.random() * 0.2); d.gain.value = depth; o.connect(d).connect(am.gain); o.start(); }
+      n.connect(am).connect(gain);
+      src.start(0, Math.random() * 1.5);
+    }
+    chains.set(e.id, c);
+    return c;
+  }
+  let listenerAt = [0, 0, 0];
+  const dist3 = (a) => Math.hypot(a[0] - listenerAt[0], a[1] - listenerAt[1], a[2] - listenerAt[2]);
   const set = (param, v, tau = 0.4) => param.setTargetAtTime(v, ctx.currentTime, tau);
   /** Play a voice into `out` (a node), then return to the plain bus. */
   function into(out, id) { bus = out; voices[id](); bus = null; }
@@ -243,6 +290,7 @@ export function createAudio() {
       const k = me.x * 7 + me.z * 13 + me.y * 3 + me.yaw * 11;
       if (listened !== null && Math.abs(k - listened) < 0.002) return; // not moved, not turned: nothing to set
       listened = k;
+      listenerAt = [me.x, me.y, me.z];
       const l = ctx.listener, fx = -Math.sin(me.yaw), fz = -Math.cos(me.yaw);
       if (l.positionX) {
         l.positionX.value = me.x; l.positionY.value = me.y; l.positionZ.value = me.z;
@@ -279,9 +327,52 @@ export function createAudio() {
       });
       beds.fires = sc.fire;
     },
+    /** Take in the courtyard's emitters (`emittersAt` in world/soundscape.js), a few times a second. */
+    emitters(list) {
+      if (!ctx || !beds) return;
+      for (const e of list) {
+        const c = emitterChain(e);
+        if (!c) continue;
+        c.e = e;
+        if (e.at) { place(c.panner, e.at, c.positioned ? 0.12 : 0); c.positioned = true; }
+        const on = e.at ? e.level : 0;
+        c.level = on;
+        set(c.gain.gain, c.def.bed ? on * c.def.bed.level : 1, 0.5);
+      }
+    },
+    /**
+     * What each emitter is doing now, for tests: its own level (on or off, no distance), how far it is from the listener, and the
+     * measured loudness of its panner's output on each ear when a probe is attached (`probe`).
+     */
+    emitterReport() {
+      const out = {};
+      for (const [id, c] of chains) out[id] = { level: c.level ?? 0, distance: c.e.at ? +dist3(c.e.at).toFixed(2) : null, heard: c.probe ? c.probe() : null };
+      return out;
+    },
+    /** Attach two analysers to an emitter's panner output (left and right) so a test can measure what reaches each ear. */
+    probe(id) {
+      const c = chains.get(id);
+      if (!c || c.probe) return Boolean(c);
+      const split = ctx.createChannelSplitter(2), an = [ctx.createAnalyser(), ctx.createAnalyser()];
+      an.forEach((a) => { a.fftSize = 1024; });
+      c.panner.connect(split);
+      split.connect(an[0], 0); split.connect(an[1], 1);
+      const buf = new Float32Array(1024);
+      const rms = (a) => { a.getFloatTimeDomainData(buf); return Math.sqrt(buf.reduce((x, v) => x + v * v, 0) / buf.length); };
+      c.probe = () => ({ left: +rms(an[0]).toFixed(5), right: +rms(an[1]).toFixed(5) });
+      return true;
+    },
     /** Every frame: footfalls (others' and the visitor's own) and the fire's crackle. */
     tick(dt, speed) {
       if (!ctx || !beds || ctx.state !== "running") return;
+      for (const c of chains.values()) { // the emitters' transients: events at a rate that follows the emitter's own level
+        const events = c.def.events ?? (c.def.drip ? [c.def.drip] : null);
+        if (!events || !(c.level > 0.02) || !c.e.at) continue;
+        for (const [id, rate] of events) {
+          c.acc += dt * rate * (0.5 + c.level) * (0.7 + 0.6 * Math.random());
+          if (c.acc >= 1) { c.acc = Math.random() * 0.3; const g = ctx.createGain(); g.gain.value = Math.min(1, c.level) * (c.def.drip ? 0.5 : 1); g.connect(c.panner); into(g, id); }
+        }
+      }
       for (const s of beds.steps) {
         if (s.level < 0.02) continue;
         s.phase += dt * 1.7;

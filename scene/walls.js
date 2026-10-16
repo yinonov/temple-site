@@ -3,27 +3,22 @@
 // Geometry carries two UV sets: UV0 samples one stone of the texture per block, UV1 holds the baked ambient occlusion.
 // The stone texture is ambientCG Tiles144 (CC0), graded paler; see app/content/credits.md.
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { tierName } from "./kit.js";
+import { tierName, gradeStone, flag } from "./kit.js";
+import { loadTexture, meshLoader, meshGeometry } from "./textures.js";
 
 const ASSETS = new URL("../assets/", import.meta.url).href, BASE = `${ASSETS}walls/`;
 const BAY = 8, BODY = 7.57, VARIANTS = 4; // bay length, height of the body up to the cornice's top, number of layouts
 
 export async function loadWalls() {
-  const loader = new GLTFLoader(), textures = new THREE.TextureLoader();
-  const load = (name, srgb) => textures.loadAsync(ASSETS + tierName(`walls/${name}`)).then((t) => {
-    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-    t.flipY = false; // the UVs follow the glTF convention (origin top left)
-    t.anisotropy = 8;
-    return t;
-  });
+  const loader = meshLoader();
+  // Colour and occlusion arrive as KTX2 where the manifest lists them; `flipY: false` is the glTF-style UV convention.
+  const load = (name, srgb, channel = 0) => new Promise((done) => { loadTexture(tierName(`walls/${name}`), { srgb, flipY: false, anisotropy: 8, channel, onLoad: done }); });
   const [map, normalMap, roughnessMap] = await Promise.all([load("stone-color.jpg", true), load("stone-normal.jpg", false), load("stone-rough.jpg", false)]);
   const bays = await Promise.all(Array.from({ length: VARIANTS }, async (_, i) => {
-    const [gltf, aoMap] = await Promise.all([loader.loadAsync(`${BASE}wall_bay_${i + 1}.glb`), load(`wall-ao-${i + 1}.jpg`, false)]);
-    let geometry = null;
-    gltf.scene.traverse((o) => { if (o.isMesh) geometry = o.geometry; });
-    aoMap.channel = 1; // the occlusion is laid out on the second UV set
-    return { geometry, material: new THREE.MeshStandardMaterial({ map, normalMap, roughnessMap, roughness: 1, metalness: 0, aoMap, aoMapIntensity: 1 }) };
+    const [gltf, aoMap] = await Promise.all([loader.loadAsync(`${BASE}wall_bay_${i + 1}.glb`), load(`wall-ao-${i + 1}.jpg`, false, 1)]);
+    const geometry = meshGeometry(gltf);
+    const material = new THREE.MeshStandardMaterial({ map, normalMap, roughnessMap, roughness: 1, metalness: 0, aoMap, aoMapIntensity: 1 });
+    return { geometry, material: flag("grade", true) ? gradeStone(material) : material };
   }));
   return bays;
 }

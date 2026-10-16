@@ -4,13 +4,16 @@ import { createWorldScene } from "./scene/world-scene.js";
 import { createWalker } from "./controls.js";
 import { createAudio } from "./audio.js";
 import { worldAt, soundsBetween, arrivalAt } from "./world/world.js";
-import { soundscapeAt, callsBetween, musicBetween } from "./world/soundscape.js";
+import { soundscapeAt, callsBetween, musicBetween, emittersAt } from "./world/soundscape.js";
 import { notesAt, NOTES } from "./world/notes.js";
 import { flightAt, flightCuesBetween, OFFER, FLIGHT } from "./world/jericho.js";
 import { CAST } from "./world/cast.js";
 import { UI, clockText } from "./ui-text.js";
 import { F, ALTAR, HEICHAL } from "./world/places.js";
 import { EYE } from "./controls.js";
+import { createCameraFeel } from "./scene/camera-feel.js";
+import { COURTYARD } from "./scene/courtyard.js";
+import { EMITTERS } from "./world/emitters.js";
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -37,16 +40,25 @@ const stats = params.has("stats") ? (() => {
     const fps = (n * 1000) / (t - t0);
     win.push(fps); if (win.length > 10) win.shift();
     const info = scene.info();
-    shown = `${fps.toFixed(0)} fps (min ${Math.min(...win).toFixed(0)} of last ${win.length} s)  worst frame ${worst.toFixed(0)} ms\n${info.calls} draws  ${(info.triangles / 1000).toFixed(0)}k tris  tier ${lowPower ? "low" : "high"}  px ${Math.min(devicePixelRatio, lowPower ? 1.25 : 1.75)}\n${innerWidth}x${innerHeight}  ${[...params.keys()].filter((k) => ["stone", "walls", "hero", "ao"].includes(k)).join("+") || "plain"}`;
+    shown = `${fps.toFixed(0)} fps (min ${Math.min(...win).toFixed(0)} of last ${win.length} s)  worst frame ${worst.toFixed(0)} ms\n${info.calls} draws  ${(info.triangles / 1000).toFixed(0)}k tris  tier ${scene.tier().name}  px ${Math.min(devicePixelRatio, scene.tier().settings.pixelRatioMax)}\n${innerWidth}x${innerHeight}  ${[...params.keys()].filter((k) => ["stone", "walls", "hero", "ao"].includes(k)).join("+") || "plain"}`;
     el.textContent = shown; t0 = t; n = 0; worst = 0;
   } };
 })() : null;
 let lastNote = null;
+// `?bench=1`: a measured, scripted two-minute walk that posts its numbers to the LAN bench server (scene/bench.js). Tests only.
+const benchPromise = params.has("bench") ? import("./scene/bench.js") : null;
 
 const layout = await (await fetch("./content/layout.json")).json();
 const canvas = $("stage");
 const scene = createWorldScene(canvas, layout, { F, TOP: ALTAR.top, ALTAR: [ALTAR.x, ALTAR.top, ALTAR.z], LAVER: [-22.5, F, -36], HEICHAL }, CAST, { lowPower });
 const audio = createAudio();
+// The eye follows the walker smoothly (camera-feel.js); the walker stays the truth for collision, sound, notes and tests.
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const feel = createCameraFeel({ calm: reducedMotion });
+const feelLog = params.has("feelLog") ? [] : null; // tests only: the eye's own frame-to-frame record, for the judder metric
+// `?alive=1`: the scene's own motion in fixed screen regions, for `bench.js --alive` (scene/bench.js). Tests only.
+const aliveProbe = params.has("alive") ? (await import("./scene/bench.js")).createAliveProbe({ canvas: $("stage"), regions: () => aliveRegions() }) : null;
+const bench = benchPromise ? (await benchPromise).createBench({ params, canvas, scene, state: () => ({ t: world?.t ?? now(), people: world ? Object.values(world.people).filter((p) => p.visible).length : null }) }) : null;
 const spawn = (params.get("pos") ?? "").split(",").map(Number);
 // Arrive facing whatever is going on now (or where a test asks).
 const walker = createWalker(spawn.length >= 2 && spawn.every(Number.isFinite) ? { x: spawn[0], z: spawn[1], yaw: spawn[2] ?? Math.PI / 2, ...(Number.isFinite(spawn[3]) ? { pitch: spawn[3] } : {}) } : arrivalAt(now()), { gateOpen: () => (world?.env.gate ?? 0) > 0.6 });
@@ -227,6 +239,7 @@ function startFlight() {
 }
 function endFlight() {
   flight = null;
+  feel.snap(walker.me); // back exactly where the visitor stood, with no glide
   document.body.classList.remove("flying");
   $("back").hidden = true;
   $("heard").hidden = true;
@@ -263,6 +276,8 @@ function frame(ms) {
   last = ms;
   let forward = (keys.has("KeyW") || keys.has("ArrowUp") ? 1 : 0) - (keys.has("KeyS") || keys.has("ArrowDown") ? 1 : 0) - stick.y;
   const right = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0) + stick.x;
+  const scripted = bench?.frame(ms, frames, entered);
+  if (scripted) { forward = scripted.forward; }
   // Walking to a clicked spot: turn toward it and go; any key or the stick takes over, and a wall ends it.
   if (target && (forward || right || flight || !entered)) target = null;
   if (target) {
@@ -279,7 +294,7 @@ function frame(ms) {
       }
     }
   }
-  const turn = (keys.has("ArrowLeft") ? 1 : 0) - (keys.has("ArrowRight") ? 1 : 0);
+  const turn = (keys.has("ArrowLeft") ? 1 : 0) - (keys.has("ArrowRight") ? 1 : 0) + (scripted?.turn ?? 0) / 1.6;
   if (turn && !flight) walker.look(turn * dt * 1.6, 0);
   // Walking keeps real pace even when frames are slow (capped, so a stall never throws the visitor across a court).
   if (entered && !flight) walker.step(Math.min(0.25, (ms - (frame.prev ?? ms)) / 1000), { forward: Math.max(-1, Math.min(1, forward)), right: Math.max(-1, Math.min(1, right)) }, keys.has("ShiftLeft") || keys.has("ShiftRight"));
@@ -299,7 +314,11 @@ function frame(ms) {
   if (!fresh && offered !== null) offered = null;
   $("follow").hidden = offered === null || Boolean(flight);
   const view = flight ? stepFlight() : null;
-  scene.update(world, walker.me, dt, frozen ? (t / 1000) % 1000 : ms / 1000, view);
+  const eye = view ? walker.me : feel.step(dt, walker.me);
+  if (feelLog && !view) feelLog.push([ms, eye.x, eye.y, eye.z, eye.yaw, eye.pitch, walker.me.x, walker.me.z, walker.me.yaw]);
+  scene.update(world, eye, dt, frozen ? (t / 1000) % 1000 : ms / 1000, view);
+  bench?.afterRender();
+  aliveProbe?.afterRender(ms);
   // What is heard: the beds a few times a second, the calls of the Mount as they fall due, footfalls every frame.
   audio.listen(walker.me);
   if (!heard || ms - heard.at > 250) {
@@ -307,6 +326,7 @@ function frame(ms) {
     // song for the next stretch (the music cursor runs ahead of the clock by LOOK, so each note is scheduled once).
     heard = { at: ms, scape: soundscapeAt(world, walker.me) };
     audio.hear(heard.scape, ms / 1000);
+    audio.emitters(emittersAt(world, walker.me));
     for (const c of t - callT < 10000 ? callsBetween(callT, t, world, walker.me) : []) audio.play(c.id, c.level, c.pos);
     callT = t;
     for (const n of t + LOOK - musicT < 10000 ? musicBetween(musicT, t + LOOK, world, walker.me) : []) audio.note(n, (n.t - t) / 1000);
@@ -336,6 +356,30 @@ function inView() {
   return n;
 }
 
+/**
+ * Screen rectangles where the courtyard should be alive right now, for `bench.js --alive`: the lit lamp flames, the smoke above
+ * them, the banners' cloth, a patch of open sky for the flock, and (as a control that must stay still) a patch of the pillar at the left. A region that is
+ * off screen is left out.
+ */
+function aliveRegions() {
+  const w = innerWidth, h = innerHeight, R = 34;
+  const at = (pos, r = R) => {
+    const p = scene.project(pos, w, h);
+    return p && p.x > r && p.x < w - r && p.y > r && p.y < h - r ? { x: Math.round(p.x - r), y: Math.round(p.y - r), width: 2 * r, height: 2 * r } : null;
+  };
+  const flames = scene.life?.litFlames() ?? [];
+  const bit = (list) => list.filter(Boolean);
+  return {
+    fire: bit(flames.map((f) => at([f[0], f[1] + 0.12, f[2]], 22))),
+    smoke: bit(flames.map((f) => at([f[0], f[1] + 1.0, f[2]], 30))),
+    cloth: bit(COURTYARD.dressing.filter((d) => d.prop === "banner").map((d) => at([d.at[0], F + 2.3, d.at[1]], 40))),
+    // The flock circles high over the court: watch the open sky to the right of the altar's smoke column (the panel at the top right is clear of it).
+    sky: [{ x: Math.round(w * 0.58), y: 90, width: Math.round(w * 0.36), height: Math.round(h * 0.34) }],
+    // A control that must stay still: a patch of the pillar at the left, in no flame's light.
+    control: [{ x: Math.round(w * 0.05), y: Math.round(h * 0.3), width: 80, height: 80 }],
+  };
+}
+
 // For tests: read the state and move the visitor. Not part of the experience.
 window.__temple = {
   get frames() { return frames; },
@@ -345,9 +389,18 @@ window.__temple = {
     moving: world ? Object.values(world.people).filter((p) => p.visible && p.moving).length : 0,
     routines: world?.routines.map((r) => r.id) ?? [], bubbles: [...bubbles.keys()], note: lastNote,
     flight: flight ? Number(flight.s.toFixed(1)) : null, offered: offered !== null, camera: scene.camera.position.toArray().map((v) => Number(v.toFixed(2))), shabbat: world?.calendar.shabbat, audio: audio.state, muted: audio.muted, spoken: audio.spoken, walking: target !== null, pinned: pinned?.note.id ?? null, loudness: Number(audio.level.toFixed(4)), sound: heard?.scape.summary ?? null,
-    draws: scene.info().calls, inView: inView(),
+    draws: scene.info().calls, inView: inView(), figures: scene.figures(), emitters: audio.emitterReport(), life: scene.life ? { ...scene.life.amounts(), shown: scene.life.shown() } : null, reducedMotion,
   }),
-  place: (x, z, yaw) => walker.place(x, z, yaw),
+  tier: () => scene.tier().name,
+  /** Attach left and right analysers to a sound emitter's output (tests); its levels then show in `state().emitters[id].heard`. */
+  probe: (id) => audio.probe(id),
+  figureProbe: () => scene.figureProbe(),
+  figureList: () => scene.figureList(),
+  census: () => scene.census(),
+  place: (x, z, yaw) => { walker.place(x, z, yaw); feel.snap(walker.me); },
+  alive: aliveRegions,
+  /** The eye's frame-to-frame record (only with `?feelLog`), and what the smoothing is doing now. */
+  feelLog: () => feelLog,
   /** Screen position of the nearest visible person within 25 m who is on screen (to tap on). */
   personOnScreen: () => {
     let best = null;

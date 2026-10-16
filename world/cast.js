@@ -11,6 +11,7 @@ export const CAST = [
   ...many("w", 21, "levite", { role: "Levite watchman", away: true }),
   ...many("s", 8, "levite", { role: "Levite singer", away: true }),
   ...many("g", 160, "villager", { role: "pilgrim", away: true }),
+  ...many("f", 96, "priest", { role: "priest of the festival watches", away: true }), // on the pilgrim festivals, in the court
   ...many("b", 16, "villager", { role: "bringer of first fruits", away: true }), // on Shavuot
   { id: "ox", look: "ox", role: "the ox before the first fruits", away: true },
 ];

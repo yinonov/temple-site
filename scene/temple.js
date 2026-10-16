@@ -3,7 +3,12 @@
 // everything added here (walls, columns, trim, colours) is imagination.
 import * as THREE from "three";
 import { LAMP_STANDS } from "../world/places.js";
-import { mat, glow, flame, put, box, halo, pool, tileBox, ashlarTexture, pavingTexture, curtainTexture, haloTexture, stoneKit, pbrStone } from "./kit.js";
+import { mat, glow, flame, put, box, halo, pool, tileBox, ashlarTexture, pavingTexture, curtainTexture, haloTexture, stoneKit, pbrStone, bakedMap, gradeStone, flag } from "./kit.js";
+
+// The baked light of the court floor (assets/courtyard/courtyard-ground-ao.json; scene/courtyard.test.js keeps these equal):
+// a top-down map, north up, laid over the court's floors by their world x and z, on the second UV set.
+const GROUND_AO = { x0: -84, x1: 10, z0: -81, z1: -12 };
+const FLOOR_AO = new Set(["geo-azarah", "geo-ezrat-kohanim", "geo-ezrat-yisrael"]);
 
 export function buildTemple(layout, places, { fine = false } = {}) {
   const { F, TOP } = places;
@@ -20,6 +25,7 @@ export function buildTemple(layout, places, { fine = false } = {}) {
   const gold = new THREE.MeshStandardMaterial({ color: "#dba935", emissive: "#3a2806", roughness: 0.32, metalness: 0.9 });
   const bronze = new THREE.MeshStandardMaterial({ color: "#b0763a", emissive: "#2a1606", roughness: 0.45, metalness: 0.8 });
   const cedar = mat("#6e4526"), dark = mat("#2a1d14"), roof = mat("#b9805a");
+  let courtAo = null;
   const block = (sx, sy, sz, material, x, y, z) => put(tileBox(sx, sy, sz, material.userData.tile ?? 6), material, x, y, z, g);
   // A block given by its extents: x0..x1, y0..y1, z0..z1.
   const span = (x0, x1, y0, y1, z0, z1, material) => block(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0), material, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
@@ -28,6 +34,12 @@ export function buildTemple(layout, places, { fine = false } = {}) {
     if (/zone|interior|space|ezrat|altar|kevesh|ulam|heichal|kodesh/.test(b.id)) continue;
     if (b.id === "geo-fifteen-steps") {
       for (let i = 0; i < 15; i += 1) block(b.sx * (1 - i / 15), b.sy / 15, b.sz, wall, b.x - (b.sx * i) / 30, b.y - b.sy / 2 + (i + 0.5) * (b.sy / 15), b.z);
+    } else if (FLOOR_AO.has(b.id) && floors.court && flag("ao2", true)) {
+      courtAo ??= gradeStone(Object.assign(floors.court.clone(), { aoMap: bakedMap("courtyard/courtyard-ground-ao.jpg"), aoMapIntensity: 1 }), { contact: 0.55 });
+      const floor = block(b.sx, b.sy, b.sz, courtAo, b.x, b.y, b.z);
+      const pos = floor.geometry.attributes.position, uv1 = new Float32Array(pos.count * 2), { x0, x1, z0, z1 } = GROUND_AO;
+      for (let i = 0; i < pos.count; i += 1) { uv1[2 * i] = (pos.getX(i) + b.x - x0) / (x1 - x0); uv1[2 * i + 1] = 1 - (pos.getZ(i) + b.z - z0) / (z1 - z0); }
+      floor.geometry.setAttribute("uv1", new THREE.BufferAttribute(uv1, 2));
     } else if (floors[b.kind]) block(b.sx, b.sy, b.sz, floors[b.kind], b.x, b.y, b.z);
   }
 

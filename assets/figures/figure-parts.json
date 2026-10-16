@@ -1,0 +1,125 @@
+{
+ "textures": [
+  "body-ao.jpg",
+  "body-color.jpg",
+  "body-normal.jpg",
+  "eyes-color.jpg",
+  "garment-ao.jpg",
+  "garment-normal.jpg",
+  "hair-color.png",
+  "hair-normal.jpg"
+ ],
+ "note": "Every part has UV0 and no embedded images. map = sRGB colour; normalMap and aoMap are data maps (aoMap on UV0). tint: skin, hair, robe, headwear and sash are multiplied in the browser; null = none.",
+ "parts": {
+  "body": {
+   "textures": {
+    "map": "body-color.jpg",
+    "normalMap": "body-normal.jpg",
+    "aoMap": "body-ao.jpg"
+   },
+   "tint": "skin",
+   "roughness": 0.55,
+   "alphaTest": null,
+   "doubleSided": false,
+   "note": "head, neck, hands, wrist stubs, ankles and feet; UV0 is shared by the mirrored halves, so the maps are symmetrical"
+  },
+  "eyes": {
+   "textures": {
+    "map": "eyes-color.jpg"
+   },
+   "tint": null,
+   "roughness": 0.15,
+   "alphaTest": null,
+   "doubleSided": false,
+   "note": "both eyeballs (front domes with a cornea bulge); glossy, never tinted; rigid to the head bone"
+  },
+  "brows": {
+   "textures": {
+    "map": "hair-color.png",
+    "normalMap": "hair-normal.jpg"
+   },
+   "tint": "hair",
+   "roughness": 0.6,
+   "alphaTest": 0.5,
+   "doubleSided": true,
+   "note": "alpha = texture alpha x COLOR_0 alpha; the texture repeats (wrap = repeat)"
+  },
+  "hair": {
+   "textures": {
+    "map": "hair-color.png",
+    "normalMap": "hair-normal.jpg"
+   },
+   "tint": "hair",
+   "roughness": 0.6,
+   "alphaTest": 0.5,
+   "doubleSided": true,
+   "note": "alpha = texture alpha x COLOR_0 alpha (edges dissolve); wrap = repeat"
+  },
+  "beard": {
+   "textures": {
+    "map": "hair-color.png",
+    "normalMap": "hair-normal.jpg"
+   },
+   "tint": "hair",
+   "roughness": 0.6,
+   "alphaTest": 0.5,
+   "doubleSided": true,
+   "note": "alpha = texture alpha x COLOR_0 alpha (edges dissolve); wrap = repeat; optional part"
+  },
+  "garment.robe": {
+   "textures": {
+    "normalMap": "garment-normal.jpg",
+    "aoMap": "garment-ao.jpg"
+   },
+   "tint": "robe",
+   "roughness": 0.9,
+   "alphaTest": null,
+   "doubleSided": false,
+   "note": "COLOR_0 carries soft fold shading (light greys)"
+  },
+  "garment.headwear": {
+   "textures": {
+    "normalMap": "garment-normal.jpg",
+    "aoMap": "garment-ao.jpg"
+   },
+   "tint": "headwear",
+   "roughness": 0.9,
+   "alphaTest": null,
+   "doubleSided": true,
+   "note": "dome cap and two ribbons of wound cloth; ribbons are single sheets"
+  },
+  "garment.sash": {
+   "textures": {
+    "normalMap": "garment-normal.jpg",
+    "aoMap": "garment-ao.jpg"
+   },
+   "tint": "sash",
+   "roughness": 0.9,
+   "alphaTest": null,
+   "doubleSided": true,
+   "note": "waist band and two hanging ends"
+  }
+ },
+ "triangles": {
+  "near": {
+   "body": 4642,
+   "eyes": 168,
+   "brows": 64,
+   "hair": 244,
+   "beard": 1018,
+   "garment.robe": 1532,
+   "garment.headwear": 812,
+   "garment.sash": 336
+  },
+  "mid": {
+   "body": 999,
+   "eyes": 80,
+   "brows": 32,
+   "hair": 76,
+   "beard": 286,
+   "garment.robe": 544,
+   "garment.headwear": 154,
+   "garment.sash": 104
+  }
+ }
+}

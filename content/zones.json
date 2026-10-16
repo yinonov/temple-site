@@ -1,0 +1,16 @@
+{
+ "note": "Zones of assets. `courtyard` loads first (the court's floors, wall bays and set dressing); `later` is what is not needed to stand in the court: the lab-only props, loaded only on request (`?lab=`) and never part of the first view. Read by compress-assets.js (first-view budget) and scene/textures.js callers.",
+ "courtyard": [
+  "assets/courtyard/",
+  "assets/walls/",
+  "assets/stone/",
+  "assets/props/dressing/"
+ ],
+ "later": [
+  "assets/props/lamp-a/",
+  "assets/props/jar/",
+  "assets/props/bowl/",
+  "assets/props/stone-cup/",
+  "assets/props/torch/"
+ ]
+}

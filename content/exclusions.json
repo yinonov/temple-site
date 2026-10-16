@@ -1,0 +1,34 @@
+{
+ "note": "Where no figure may stand and which poses are never staged (constitution II: never shown, never voiced). Read by scene/courtyard.js, scene/courtyard.test.js and the routine staging tests. Boxes are [x0, x1, z0, z1] in metres in the layout frame, with a 1 m margin round the footprints in layout.json.",
+ "zones": [
+  {
+   "id": "slaughter-area",
+   "why": "geo-slaughter-pillars-zone, geo-slaughter-tables-zone and geo-slaughter-rings-zone (north of the altar): the place of the slaughter is never staged or dressed",
+   "box": [
+    -20.0,
+    -2.1,
+    -76.0,
+    -57.3
+   ]
+  },
+  {
+   "id": "holy-of-holies",
+   "why": "geo-kodesh-hakodashim: the inside of the Holy of Holies is never entered or shown",
+   "box": [
+    -70.1,
+    -58.5,
+    -52.6,
+    -41.0
+   ]
+  }
+ ],
+ "poses": [
+  "slaughter",
+  "shecht",
+  "flay",
+  "skin",
+  "blood",
+  "sprinkle-blood",
+  "enter-holy-of-holies"
+ ]
+}

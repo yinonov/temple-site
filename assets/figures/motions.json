@@ -1,0 +1,62 @@
+{
+ "idle": {
+  "duration": 4.0,
+  "speed": 0.0,
+  "loop": true,
+  "contacts": []
+ },
+ "walk": {
+  "duration": 1.0,
+  "speed": 1.15,
+  "loop": true,
+  "contacts": [
+   {
+    "t": 0.0,
+    "foot": "L"
+   },
+   {
+    "t": 0.5,
+    "foot": "R"
+   }
+  ]
+ },
+ "carry": {
+  "duration": 1.1,
+  "speed": 1.0,
+  "loop": true,
+  "contacts": [
+   {
+    "t": 0.0,
+    "foot": "L"
+   },
+   {
+    "t": 0.55,
+    "foot": "R"
+   }
+  ]
+ },
+ "work-a": {
+  "duration": 3.2,
+  "speed": 0.0,
+  "loop": true,
+  "contacts": []
+ },
+ "work-b": {
+  "duration": 4.0,
+  "speed": 0.0,
+  "loop": true,
+  "contacts": []
+ },
+ "bow": {
+  "duration": 4.0,
+  "speed": 0.0,
+  "loop": true,
+  "contacts": []
+ },
+ "pray": {
+  "duration": 5.0,
+  "speed": 0.0,
+  "loop": true,
+  "contacts": []
+ }
+}

@@ -1,0 +1,44 @@
+{
+ "vertices": 382,
+ "frames": 146,
+ "triangles": 384,
+ "rows": {
+  "walk": {
+   "row": 0,
+   "count": 12,
+   "duration": 1.0
+  },
+  "carry": {
+   "row": 12,
+   "count": 13,
+   "duration": 1.1
+  },
+  "idle": {
+   "row": 25,
+   "count": 24,
+   "duration": 4.0
+  },
+  "work-a": {
+   "row": 49,
+   "count": 19,
+   "duration": 3.2
+  },
+  "work-b": {
+   "row": 68,
+   "count": 24,
+   "duration": 4.0
+  },
+  "bow": {
+   "row": 92,
+   "count": 24,
+   "duration": 4.0
+  },
+  "pray": {
+   "row": 116,
+   "count": 30,
+   "duration": 5.0
+  }
+ },
+ "format": "float16 RGBA little-endian, row = frame, column = vertex; rgb = offset from the rest pose in metres (glTF axes)",
+ "largestOffset": 0.628
+}

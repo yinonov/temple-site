@@ -4,7 +4,6 @@ import { floorY, blocked, zoneOf } from "./world/places.js";
 
 export const EYE = 1.6;
 const STEP = 0.6;
-const calm = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches; // no head-bob
 
 /** `gateOpen()` says whether the great gate stands open: the Sanctuary is entered only then (and always left). */
 export function createWalker({ x = 0, z = -30, yaw = Math.PI / 2, pitch = -0.05 } = {}, { gateOpen = () => true } = {}) {
@@ -24,7 +23,7 @@ export function createWalker({ x = 0, z = -30, yaw = Math.PI / 2, pitch = -0.05 
         else if (canStand(me.x, me.z + dz)) me.z += dz;
       }
       me.speed = Math.hypot(dx, dz) / Math.max(dt, 1e-6);
-      const target = floorY(me.x, me.z) + EYE + (!calm && me.speed > 0.2 ? Math.sin(performance.now() / 160) * 0.03 : 0);
+      const target = floorY(me.x, me.z) + EYE; // the head-bob belongs to the camera (scene/camera-feel.js), not to where the visitor stands
       me.y += (target - me.y) * Math.min(1, dt * 10);
     },
     look(dYaw, dPitch) {

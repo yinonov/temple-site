@@ -197,7 +197,7 @@ export const NOTES = [
     en: "The eve of Pesach. According to Mishnah Pesachim 5:1, today the daily offering comes an hour early: slaughtered at seven and a half hours and offered at eight and a half, and when the eve falls on a Friday, at six and a half and seven and a half. The Pesach offering follows it.",
   })),
   {
-    id: "day", imagined: true, during: "day-duty", at: [-20, -46.8], radius: 40,
+    id: "day", imagined: true, during: ["day-duty", "courtyard-dawn", "courtyard-festival"], at: [-20, -46.8], radius: 40,
     he: "שעות היום. מה עושים הכהנים בין עבודת הבוקר לעבודת הערב מסופר מעט; כאן הם עסוקים בעזרה לפי דמיוננו.",
     en: "The hours of the day. Little is told of what the priests did between the morning and afternoon service; here they are busy about the court as we imagine it.",
   },

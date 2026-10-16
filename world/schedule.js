@@ -141,11 +141,13 @@ export function compileDay(key) {
 
 // Milling about: every few seconds a person strolls to a new spot near their place, never leaving its area.
 const STROLL = 0.45; // metres per second
-function wanderAt(c, t, id) {
-  if (!c.wander) return { x: c.x, z: c.z, moving: false };
-  const SLOT = 8000 + c.wander * 2500 + hash(id, "slot") * 5000, phase = hash(id, "phase") * SLOT;
-  const slot = Math.floor((t + phase) / SLOT);
-  const zone = area(zoneOf(c.x, c.z));
+// The plan of one stroll (its two ends, the path and its length) depends only on the claim, the person and the slot, so it is worked
+// out once and kept; a frame then only walks along it. Same answers as working it out every time, a few dozen times cheaper.
+const strolls = new WeakMap(); // claim -> { SLOT, phase, zone, plans: Map(slot -> plan) }
+function strollPlan(c, id, slot, S) {
+  let plan = S.plans.get(slot);
+  if (plan) return plan;
+  const { SLOT, phase, zone } = S;
   const target = (s) => {
     if (s * SLOT - phase < c.start || (s + 1) * SLOT - phase > c.end - 2000) return [c.x, c.z]; // start and end at the centre
     for (let k = 0; k < 8; k += 1) {
@@ -159,7 +161,23 @@ function wanderAt(c, t, id) {
   const clear = (f) => standable(ax + (bx - ax) * f, az + (bz - az) * f, zone) && !inSanctuary(ax + (bx - ax) * f, az + (bz - az) * f);
   // Strolls go straight, or by way of the place's centre if the straight line would cut a corner.
   const pts = [0.2, 0.4, 0.6, 0.8].every(clear) ? [[ax, az], [bx, bz]] : [[ax, az], [c.x, c.z], [bx, bz]];
-  const len = routeLength(pts), speed = Math.max(STROLL, len / (0.85 * SLOT / 1000)), walked = ((t + phase - slot * SLOT) / 1000) * speed; // every stroll ends within its slot
+  const len = routeLength(pts);
+  plan = { bx, bz, pts, len, speed: Math.max(STROLL, len / (0.85 * SLOT / 1000)) }; // every stroll ends within its slot
+  if (S.plans.size > 8) S.plans.clear(); // a claim is walked through in order: old slots are not asked for again
+  S.plans.set(slot, plan);
+  return plan;
+}
+function wanderAt(c, t, id) {
+  if (!c.wander) return { x: c.x, z: c.z, moving: false };
+  let S = strolls.get(c);
+  if (!S) {
+    const SLOT = 8000 + c.wander * 2500 + hash(id, "slot") * 5000, phase = hash(id, "phase") * SLOT;
+    S = { SLOT, phase, zone: area(zoneOf(c.x, c.z)), plans: new Map() };
+    strolls.set(c, S);
+  }
+  const { SLOT, phase } = S, slot = Math.floor((t + phase) / SLOT);
+  const { bx, bz, pts, len, speed } = strollPlan(c, id, slot, S);
+  const walked = ((t + phase - slot * SLOT) / 1000) * speed;
   if (len < 0.05 || walked >= len) return { x: bx, z: bz, moving: false };
   return { ...along(pts, walked), moving: true };
 }

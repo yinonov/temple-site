@@ -7,16 +7,26 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { C, lerp, clamp, sstep, mat, glow, flame, put, box, halo, figure, poseFigure, goat, flag, setLowTextures } from "./kit.js";
+import { C, lerp, clamp, sstep, mat, glow, flame, put, box, halo, figure, poseFigure, goat, flag, setLowTextures, GRADE } from "./kit.js";
+import { atmosphereAt } from "./atmosphere.js";
+import { installHaze } from "./haze.js";
+import { initTextures } from "./textures.js";
+import { COURTYARD } from "./courtyard.js";
+import { loadDressing } from "./dressing.js";
+import { createLife } from "./life.js";
+import { loadFigureFamily, createFigureRigs } from "./figures.js";
+import { loadFar, createFarCrowd } from "./far-crowd.js";
 import { buildTemple } from "./temple.js";
 import { buildLand } from "./land.js";
 import { loadHero, hero, poseHero } from "./hero.js";
 import { loadWalls, wallInstances } from "./walls.js";
 import { buildLab } from "./lab.js";
+import { selectTier, createGovernor, readDevice, pixelRatioFor } from "./tiers.js";
 import { sunPosition } from "../world/sky.js";
 import { RIPPLES } from "../world/jericho.js";
 
 const DEG = Math.PI / 180;
+if (flag("haze", true)) installHaze(); // height-thinned fog, before any material compiles
 const PRIEST = { robe: "#f7f2e6", headwear: "turban", headColor: "#f7f2e6" };
 const LOOKS = {
   priest: (i) => ({ ...PRIEST, sash: ["#b23a48", "#3d6fb5", "#7a4fb0", "#c2572b", "#2f8a7a", "#b0457a"][i % 6], beard: ["#3a2a1e", "#5a4632", "#2a2019", "#8a8078"][i % 4], skin: ["#cf9f72", "#b9855a", "#d8ac80"][i % 3] }),
@@ -24,18 +34,24 @@ const LOOKS = {
   levite: (i) => ({ robe: "#dfe7ee", sash: ["#3d6fb5", "#2f6a8a", "#4a5fa8"][i % 3], headwear: "cap", headColor: ["#3d6fb5", "#2f6a8a", "#4a5fa8"][i % 3], beard: ["#3a2a1e", "#5a4632"][i % 2], skin: "#c18e62", scale: 1.04 }),
   villager: (i) => ({ robe: ["#c9753a", "#3f8f8a", "#b0457a", "#8a6a3a", "#5f7a3a", "#a04a3a"][i % 6], sash: ["#f1e4c8", "#3a2a1e", "#d9b25a"][i % 3], headwear: ["scarf", "cap", "hair", "scarf"][i % 4], headColor: ["#f1e4c8", "#d99a3e", "#4a2f1c", "#c9b9a0"][i % 4], beard: i % 3 ? null : "#3a2a1e", skin: ["#c18e62", "#d4a476", "#a9784e"][i % 3], scale: i % 7 === 3 ? 0.68 : 0.95 + (i % 5) * 0.03 }),
 };
-const SEEN = 90; // metres beyond which figures are not drawn
 
 /** Direction to a body at altitude/azimuth (degrees) in the layout frame (x east, y up, z south). */
 const skyDir = (v, alt, az) => v.set(Math.sin(az * DEG) * Math.cos(alt * DEG), Math.sin(alt * DEG), -Math.cos(az * DEG) * Math.cos(alt * DEG));
 
 export function createWorldScene(canvas, layout, places, cast, { lowPower = false } = {}) {
+  // `lowPower` only decides antialiasing, which is fixed when the context is made; everything else follows the tier.
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !lowPower, powerPreference: "high-performance" });
   // A software renderer (SwiftShader, llvmpipe) is far too slow for the physically based shaders at full size: draw it at
   // 60% and skip the post-processing, so walking and tests stay usable.
-  const gl = renderer.getContext(), debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-  const software = !!debugInfo && /swiftshader|llvmpipe|software/i.test(String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)));
-  renderer.setPixelRatio(software ? 0.6 : Math.min(window.devicePixelRatio || 1, lowPower ? 1.25 : 1.75));
+  const device = readDevice(renderer), software = device.software;
+  const chosen = selectTier(device);
+  const governor = createGovernor(chosen.name, { settings: chosen.settings });
+  const tier = governor.state; // { name, settings }: what to draw with, stepped down by the governor
+  const fixedTier = new URLSearchParams(location.search).get("governor") === "0"; // tests and measurements only: hold the tier still
+  const pxOverride = Number(new URLSearchParams(location.search).get("px")) || null; // tests and measurements only
+  let cssSize = [innerWidth, innerHeight];
+  const pixelRatio = () => (software ? 0.6 : pxOverride ?? pixelRatioFor(tier.settings, device.dpr, cssSize[0], cssSize[1]));
+  renderer.setPixelRatio(pixelRatio());
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -115,7 +131,9 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   const hemi = new THREE.HemisphereLight("#3a4a9a", "#1a1420", 1);
   const sun = new THREE.DirectionalLight("#ffb070", 0);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(lowPower ? 1024 : 2048, lowPower ? 1024 : 2048);
+  sun.castShadow = tier.settings.shadowMap > 0;
+  renderer.shadowMap.enabled = sun.castShadow;
+  sun.shadow.mapSize.set(tier.settings.shadowMap || 1024, tier.settings.shadowMap || 1024);
   Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 });
   sun.shadow.bias = -0.0006;
   sun.shadow.normalBias = 0.3;
@@ -132,7 +150,8 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   const lampLight = new THREE.PointLight("#ffc46a", 6, 18, 1.6);
   lampLight.position.set(-52.2, F + 2.2, -43.9);
   scene.add(lampLight);
-  setLowTextures(lowPower || software);
+  initTextures(renderer);
+  setLowTextures(tier.settings.textureSet === "1k" || software);
   const temple = buildTemple(layout, places, { fine: flag("stone", true) }); // `?stone=0` for the plain look
   const land = buildLand(RIPPLES.length);
   const rippleTimes = RIPPLES.map((r) => r.t);
@@ -140,12 +159,21 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
   const lab = new URLSearchParams(location.search).get("lab"); // `?lab=lamp`: a single object on a plinth, in the real light
   if (lab) scene.add(buildLab(lab, places));
   // Dressed-stone bays (built in Blender) stand in place of the plain tall walls; `?walls=0` keeps the plain ones. Software
-  // renderers keep the plain walls by default (too slow); small screens get bays that cast no shadows.
-  if (flag("walls", !software)) {
+  // renderers and the low tier keep the plain walls by default (too slow); tiers without a shadow map get bays that cast none.
+  if (flag("walls", !software && tier.name !== "low")) {
     loadWalls().then((bays) => {
       for (const o of [...temple.walls.parts, temple.walls.merlons]) o.visible = false;
-      temple.g.add(wallInstances(bays, temple.walls.runs, { shadows: !lowPower }));
+      temple.g.add(wallInstances(bays, temple.walls.runs, { shadows: tier.settings.shadowMap > 0 }));
     }).catch((e) => console.warn("wall assets failed", e));
+  }
+
+  // Flames on the lamp stands, their smoke, cloth that sways, dust in the sun and birds (life.js), all from the instant; `?life=0` leaves them out.
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const life = flag("life", true) ? createLife({ scene, calm, level: tier.settings.lifeEffects }) : null;
+
+  // The courtyard slice's set dressing (courtyard.js), after the walls; `?dress=0` leaves it out.
+  if (flag("dress", true)) {
+    loadDressing(COURTYARD, { F, shadows: tier.settings.shadowMap > 0, life }).then((g) => scene.add(g)).catch((e) => console.warn("dressing failed", e));
   }
 
   const torch = (hand) => {
@@ -172,16 +200,30 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     let h = 7;
     for (const ch of who.id) h = (h * 31 + ch.charCodeAt(0)) % 9973;
     const f = figure({ ...look, prop: who.id === "officer" ? torch : null, phase: (h / 9973) * 6 });
-    f.g.traverse((o) => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = !lowPower; });
+    f.g.traverse((o) => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = tier.settings.shadowMap > 0; });
     f.g.visible = false;
+    f.look = who.look;
     figures[who.id] = f;
     scene.add(f.g);
   }
 
+  // Skinned, animated people (figures.js) for the nearest priests, Levites and officers; the rest stay placeholders. The
+  // pool is as large as the tier allows and appears once its files have loaded; `?rigs=0` keeps the placeholders.
+  let lastList = [];
+  let rigs = null, family = null, far = null, farState = flag("far", true) ? "idle" : "off"; // the far level loads when a crowd first needs it
+  const showPeople = flag("people", true); // `?people=0` (tests): an empty courtyard, so the scene's own motion can be told from the people's
+  const forceLod = new URLSearchParams(location.search).get("lod"); // tests only: draw every rig at one level of detail
+  const RIGGED = new Set(["priest", "levite", "officer"]);
+  if (flag("rigs", true)) {
+    loadFigureFamily().then((fam) => { family = fam; rigs = createFigureRigs(scene, fam, { size: tier.settings.maxFigures, shadows: tier.settings.shadowMap > 0 });
+      const only = new URLSearchParams(location.search).get("maxfigures"); // tests only: draw at most this many people as rigs (0: everyone as far figures)
+      if (only !== null && Number.isFinite(Number(only))) rigs.setLimit(Number(only)); }).catch((e) => console.warn("figures failed", e));
+  }
+
   // Finishing: ambient occlusion in the corners and under the figures, a soft bloom on flame and gold, and tone mapping
-  // last. Weak devices (lowPower: touch or small screens) skip it and draw straight to the screen.
+  // last. The medium and low tiers skip it and draw straight to the screen.
   let composer = null, bloom = null;
-  if (!lowPower && !software) {
+  if (tier.settings.post !== "none" && !software) {
     composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
     composer.addPass(new RenderPass(scene, camera));
     const ao = new GTAOPass(scene, camera, 1, 1);
@@ -218,14 +260,35 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
 
   const tmp = new THREE.Vector3(), moonDir = new THREE.Vector3();
   let portrait = false;
+  // The governor steps presentation down when frames run slow. It reads real frame times and changes nothing in the world.
+  let frameCount = 0;
+  let started = performance.now(), lastFrame = started, frameMs = 16, frameAt = started;
+  function applyGovernor(step) {
+    if (!step) return;
+    const s = tier.settings;
+    if (step.what === "pixelRatio" || step.what === "tier") { renderer.setPixelRatio(pixelRatio()); resizeNow(); }
+    if (step.what === "rigs" || step.what === "tier") rigs?.setLimit(s.maxFigures);
+    if (step.what === "lifeEffects" || step.what === "tier") life?.setLevel(s.lifeEffects);
+    if (step.what === "shadowMap" || step.what === "tier") {
+      const on = s.shadowMap > 0;
+      sun.castShadow = on; renderer.shadowMap.enabled = on;
+      if (on) sun.shadow.mapSize.set(s.shadowMap, s.shadowMap);
+      sun.shadow.map?.dispose(); sun.shadow.map = null;
+      for (const f of Object.values(figures)) f.g.traverse((o) => { if (o.isMesh && o.material.isMeshStandardMaterial) o.castShadow = on; });
+    }
+  }
+  let size = [1, 1];
+  const resizeNow = () => { renderer.setSize(size[0], size[1], false); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(size[0], size[1]); } };
 
   /**
    * Draw the world at one moment, seen from `eye` ({ x, y, z, yaw, pitch }). `flight`, when the visitor follows the
    * sound to Jericho, takes the camera instead: { s, pos, look, zoom, smell } (see world/jericho.js).
    */
   function update(world, eye, dt, time, flight = null) {
+    frameAt = performance.now(); frameMs = frameAt - lastFrame; lastFrame = frameAt;
     const { dawn, sun: sunDeg, azimuth, embers, gate, wheel } = world.env;
     const day = sstep(0.1, 0.9, dawn), night = 1 - sstep(0, 0.6, dawn);
+    const air = atmosphereAt({ dawn, sun: sunDeg }); // the air and light, from the sun's height (atmosphere.js)
     if (flight) {
       camera.position.set(...flight.pos);
       camera.lookAt(tmp.set(...flight.look));
@@ -239,7 +302,7 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     skyDir(sunDir, sunDeg, azimuth);
     sky.material.uniforms.dawn.value = dawn;
     bakeEnv(dawn, sunDeg, azimuth);
-    scene.environmentIntensity = lerp(0.9, 0.52, day);
+    scene.environmentIntensity = air.envIntensity;
     sky.position.copy(camera.position);
     stars.position.copy(camera.position);
     stars.material.opacity = clamp(1 - dawn * 2.1);
@@ -257,21 +320,23 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     sunDisc.position.copy(sunDir).multiplyScalar(6000).add(camera.position);
     sunHalo.material.opacity = 0.5 * sstep(-1, 6, sunDeg);
     sunCore.material.opacity = sstep(-0.5, 3, sunDeg);
-    const horizon = C("#10183c").lerp(C("#f0c6a2"), sstep(0.05, 0.85, dawn)).lerp(C("#d6e4f2"), sstep(0.8, 1, dawn) * 0.6);
-    scene.fog.color.copy(horizon);
-    scene.fog.density = lerp(0.0042, 0.0016, dawn) * (flight ? 0.4 : 1); // the far land stays clear in flight
-    const blush = sstep(0.08, 0.45, dawn) * (1 - sstep(0.55, 1, dawn));
-    hemi.color.copy(C("#3c4fae").lerp(C("#d9a9bd"), blush * 0.7).lerp(C("#e6ebf6"), day * day)); // a paler, less blue sky fill by day keeps the limestone warm in shade
-    hemi.groundColor.copy(C("#14122c").lerp(C("#c9a777"), day));
-    hemi.intensity = (lerp(1.05, 1.5, day) + blush * 0.7) * 0.35; // the environment map carries most of the ambient light now
-    const lit = sstep(0.2, 2.4, sunDeg);
-    sun.color.copy(C("#ff8a4a").lerp(C("#fff0d2"), sstep(2, 20, sunDeg)));
-    sun.intensity = lit * lerp(3.4, 2.5, sstep(4, 20, sunDeg));
-    renderer.shadowMap.autoUpdate = lit > 0;
+    // The haze warms toward the sun when the camera faces it.
+    const facing = Math.max(0, -Math.sin(camera.rotation.y) * sunDir.x - Math.cos(camera.rotation.y) * sunDir.z) / Math.max(0.0001, Math.hypot(sunDir.x, sunDir.z));
+    scene.fog.color.setRGB(...air.fog.color.map((v, i) => lerp(v, air.haze.toward[i], air.haze.strength * facing * facing)), THREE.LinearSRGBColorSpace);
+    scene.fog.density = air.fog.density * (flag("haze", true) ? 0.7 : 1) * (flight ? 0.4 : 1); // the far land stays clear in flight
+    hemi.color.setRGB(...air.hemi.color, THREE.LinearSRGBColorSpace);
+    hemi.groundColor.setRGB(...air.hemi.ground, THREE.LinearSRGBColorSpace);
+    hemi.intensity = air.hemi.intensity;
+    sun.color.setRGB(...air.sun.color, THREE.LinearSRGBColorSpace);
+    sun.intensity = air.sun.intensity;
+    renderer.shadowMap.autoUpdate = air.sun.lit > 0;
+    GRADE.shade.value.setRGB(...air.grade.shade, THREE.LinearSRGBColorSpace);
+    GRADE.light.value.setRGB(...air.grade.light, THREE.LinearSRGBColorSpace);
+    GRADE.amount.value = air.grade.amount;
     sun.target.position.copy(camera.position);
     sun.position.copy(sunDir).multiplyScalar(320).add(camera.position);
     temple.gold.emissive.copy(C("#33230a").lerp(C("#a8740f"), sstep(0.3, 0.95, dawn)));
-    renderer.toneMappingExposure = lerp(1.05, 0.92, day);
+    renderer.toneMappingExposure = air.exposure;
 
     // Fire, embers, smoke and torches.
     const flick = 0.84 + 0.1 * Math.sin(time * 11) + 0.07 * Math.sin(time * 23.7);
@@ -324,26 +389,65 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
     temple.wheel.rotation.x -= dt * 3.4 * (wheel ?? 0);
 
     // People.
+    const candidates = [];
+    let k = 0;
     for (const [id, f] of Object.entries(figures)) {
       const p = world.people[id];
       const d = Math.hypot(p.pos[0] - eye.x, p.pos[2] - eye.z);
-      const near = p.visible && d < SEEN && d > 0.7; // the unseen visitor passes through people
+      const near = showPeople && p.visible && d < tier.settings.seen && d > 0.7; // the unseen visitor passes through people
       f.g.visible = near;
-      if (!near) continue;
+      // A figure that is not drawn is not walked over by the scene's matrix update; a placeholder far away (a speck, whose stride no
+      // one can read, from 30 m) is posed and walked over one frame in three, and drawn from its last pose in between.
+      f.g.matrixWorldAutoUpdate = near && (!(f.shown && d > 30) || (frameCount + k) % 3 === 0);
+      f.shown = near;
+      k += 1;
+      f.drawn = false;
+      if (near && rigs && RIGGED.has(f.look)) candidates.push({ id, look: f.look, actor: p, d, dayKey: world.sun.key, f });
+    }
+    let drawnRigs = new Map(), farDrawn = new Set();
+    if (rigs) {
+      if (rigs.shadowsOn !== tier.settings.shadowMap > 0) { rigs.shadowsOn = tier.settings.shadowMap > 0; rigs.setShadows(rigs.shadowsOn); }
+      candidates.sort((a, b) => a.d - b.d);
+      const lod = { ...tier.settings.figureLod, force: forceLod === "far" ? undefined : forceLod };
+      if (forceLod === "far") lod.mid = 0; // tests only: no rig, everyone is drawn by the far level
+      if (far) for (const c of candidates) c.walkT = far.walkTOf(c.id); // a person who takes a rig carries on from their far walk phase
+      drawnRigs = rigs.place(candidates, { seconds: world.t / 1000, frame: frameCount }, Math.min(dt, 0.1), lod);
+      // Everyone the rigs do not draw fully is drawn by the far level (a crowd: it loads on first need), up to the tier's crowd cap.
+      if (farState === "idle" && (candidates.length - drawnRigs.size >= 4 || forceLod === "far")) {
+        farState = "loading";
+        loadFar().then((f) => { far = createFarCrowd(scene, f, { capacity: 160, shadows: tier.settings.shadowMap > 0 }); farState = "ready"; }).catch((e) => { farState = "off"; console.warn("far figures failed", e); });
+      }
+      if (far) {
+        for (const c of candidates) { c.fade = 1 - (drawnRigs.get(c.id) ?? 0); c.walkT = drawnRigs.has(c.id) ? rigs.walkTOf(c.id) : undefined; }
+        farDrawn = far.place(candidates, { seconds: world.t / 1000, dt: Math.min(dt, 0.1), meta: family.meta, cap: Math.max(0, tier.settings.maxCrowd - drawnRigs.size) });
+      }
+      lastList = candidates.map((c) => ({ id: c.id, d: +c.d.toFixed(2), rig: +(drawnRigs.get(c.id) ?? 0).toFixed(2), far: farDrawn.has(c.id) }));
+      for (const c of candidates) {
+        const f = c.f, appear = drawnRigs.get(c.id) ?? 0;
+        // With the far level on, everyone it could draw is hidden as a placeholder: those past the tier's crowd cap are simply not drawn.
+        if (appear >= 0.5 || far || farDrawn.has(c.id)) { f.g.visible = false; f.g.matrixWorldAutoUpdate = false; f.drawn = true; }
+      }
+    }
+    frameCount += 1;
+    for (const [id, f] of Object.entries(figures)) {
+      const p = world.people[id];
+      if (!f.g.visible || !f.g.matrixWorldAutoUpdate) continue;
       if (f.ox) { f.g.position.set(...p.pos); if (p.heading !== null) f.g.rotation.y = p.heading - Math.PI / 2; continue; }
       if (f.hero) poseHero(f, p, world.t / 1000, dt); else poseFigure(f, p, time, dt);
       if (f.held?.userData.flames) for (const fl of f.held.userData.flames) fl.visible = dawn < 0.6;
     }
     land.update(flight ? flight.s : -1000, time, flight?.smell ?? 0, rippleTimes);
-    if (composer) composer.render(); else renderer.render(scene, camera);
+    life?.update(world, eye, sunDir);
+    if (composer && tier.settings.post !== "none") composer.render(); else renderer.render(scene, camera);
+    if (!fixedTier) for (const step of governor.feed(frameMs, frameAt - started) ?? []) applyGovernor(step);
   }
 
   return {
     update,
     camera,
     resize(w, h) {
-      renderer.setSize(w, h, false);
-      if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
+      size = [w, h]; cssSize = [innerWidth, innerHeight]; renderer.setPixelRatio(pixelRatio());
+      resizeNow();
       camera.aspect = w / h;
       portrait = w < h;
       camera.fov = portrait ? 72 : 62;
@@ -362,6 +466,18 @@ export function createWorldScene(canvas, layout, places, cast, { lowPower = fals
       return [camera.position.x + dir.x * k, camera.position.z + dir.z * k];
     },
     info: () => renderer.info.render,
+    /** The courtyard's life effects (flame, smoke, cloth, dust, birds), or null with `?life=0`. */
+    life,
+    /** The tier in force ("high", "medium", "low") and the settings the governor has left it with. */
+    /** For measuring: how many objects the scene holds, and how many a matrix update walks. */
+    census: () => { let all = 0, walked = 0; const walk = (o, on) => { all += 1; if (on) walked += 1; for (const c of o.children) walk(c, on && o.matrixWorldAutoUpdate); }; walk(scene, true); const parts = scene.children.map((c) => { let n = 0; c.traverse(() => { n += 1; }); return `${c.type}${c.name ? `:${c.name}` : ""}=${n}`; }).filter((x) => !/=1$/.test(x)); return { all, walked, parts }; },
+    tier: () => ({ name: tier.name, settings: tier.settings, steps: tier.steps }),
+    /** How many people are drawn by skinned rigs, and at which level of detail. */
+    figureProbe: () => (rigs ? rigs.probe() : []),
+    /** Every person who could be a figure, nearest first, with how fully a rig draws them and whether the far level does (tests). */
+    figureList: () => lastList,
+    figures: () => ({ ...(rigs ? rigs.info() : { size: 0, drawn: 0, near: 0, mid: 0 }), far: far ? far.info().drawn : 0, farState }),
+    renderer,
     /** A goat sneezes `s` seconds into the flight. */
     sneeze(goat, s) { if (land.goats[goat]) land.goats[goat].sneeze = s; },
   };

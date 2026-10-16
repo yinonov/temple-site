@@ -1,0 +1,74 @@
+{
+  "props": [
+    {
+      "id": "wood-stack",
+      "glb": "wood-stack/wood-stack.glb",
+      "size": [
+        1.67,
+        0.98,
+        1.11
+      ],
+      "note": "A neat stack of split cedar and fig logs between four corner stakes, for the courtyard's wood store."
+    },
+    {
+      "id": "ash-pan",
+      "glb": "ash-pan/ash-pan.glb",
+      "size": [
+        0.9,
+        0.36,
+        0.9
+      ],
+      "note": "A shallow bronze pan on a low stand holding a mound of grey ash, for clearing the altar."
+    },
+    {
+      "id": "basket",
+      "glb": "basket/basket.glb",
+      "size": [
+        0.65,
+        0.4,
+        0.56
+      ],
+      "note": "A round coiled-straw carrying basket with two small loops."
+    },
+    {
+      "id": "bench",
+      "glb": "bench/bench.glb",
+      "size": [
+        1.8,
+        0.39,
+        0.44
+      ],
+      "note": "A plain low bench: two limestone ends and a cedar seat of two boards."
+    },
+    {
+      "id": "lamp-stand",
+      "glb": "lamp-stand/lamp-stand.glb",
+      "size": [
+        0.35,
+        1.6,
+        0.34
+      ],
+      "note": "A tall bronze lamp stand with a small oil bowl on top; unlit mesh."
+    },
+    {
+      "id": "water-vessel",
+      "glb": "water-vessel/water-vessel.glb",
+      "size": [
+        0.54,
+        0.71,
+        0.52
+      ],
+      "note": "A large clay water jar with two handles, resting in a ring on three wooden legs, for the laver area."
+    },
+    {
+      "id": "banner",
+      "glb": "banner/banner.glb",
+      "size": [
+        1.3,
+        3.4,
+        0.16
+      ],
+      "note": "A tall cedar pole with a crossbar and a linen hanging with a blue hem band; the cloth hangs free so it can sway in the wind."
+    }
+  ]
+}

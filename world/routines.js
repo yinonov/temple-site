@@ -8,6 +8,8 @@ import { POSTS, PLACES } from "./places.js";
 import { CAST } from "./cast.js";
 import { FESTIVAL_ROUTINES } from "./festivals.js";
 import { CYCLE_S, SECTION_S } from "./song.js";
+import { COURTYARD_DAWN } from "./routines/courtyard-dawn.js";
+import { COURTYARD_FESTIVAL } from "./routines/courtyard-festival.js";
 
 // Speech. `he` is what is said; `gloss` is the translation shown under it.
 const say = (he, gloss, facts) => ({ he, gloss, facts });
@@ -110,6 +112,8 @@ function afternoon(id, hour, days, note, pauses = false) {
 }
 
 export const ROUTINES = [
+  COURTYARD_DAWN,
+  COURTYARD_FESTIVAL,
   {
     id: "night-watch",
     anchor: { at: "nightfall", min: -25 },

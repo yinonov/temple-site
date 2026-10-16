@@ -1,6 +1,7 @@
 // Building blocks for the look: materials, code-drawn textures, glows, robed figures and goats.
 // Everything here is imagination: faces, robes, colours and proportions are picture-book choices.
 import * as THREE from "three";
+import { loadTexture } from "./textures.js";
 
 export const C = (hex) => new THREE.Color(hex);
 export const lerp = (a, b, k) => a + (b - a) * k;
@@ -77,21 +78,18 @@ export const pavingTexture = () => canvasTexture(256, (g, n) => {
 
 // Fidelity spike: real photographic-scale stone and paving (ambientCG CC0, see credits.md), shared by every material that
 // asks for them. Textures load in the background; the materials show plain colour until they arrive.
-const files = new THREE.TextureLoader();
 // Small screens and software renderers get half-resolution copies (-1k) of the big maps: a quarter of the memory, half the download.
-const HALF = new Set(["walls/stone-color.jpg", "walls/stone-normal.jpg", "walls/wall-ao-1.jpg", "walls/wall-ao-2.jpg", "walls/wall-ao-3.jpg", "walls/wall-ao-4.jpg", "stone/paving-color.jpg", "stone/paving-normal.jpg", "stone/marble-color.jpg"]);
+const HALF = new Set(["walls/stone-color.jpg", "walls/stone-normal.jpg", "walls/wall-ao-1.jpg", "walls/wall-ao-2.jpg", "walls/wall-ao-3.jpg", "walls/wall-ao-4.jpg", "stone/paving-color.jpg", "stone/paving-normal.jpg", "stone/marble-color.jpg", "courtyard/courtyard-ground-ao.jpg"]);
 let lowTextures = false;
 export const setLowTextures = (low) => { lowTextures = low; };
 export const tierName = (rel) => (lowTextures && HALF.has(rel) ? rel.replace(/\.jpg$/, "-1k.jpg") : rel);
 /** A query switch that is on unless `?name=0` (or off unless `?name=1` when `dflt` is false). */
 export const flag = (name, dflt = false) => { const v = new URLSearchParams(location.search).get(name); return v === null ? dflt : v !== "0"; };
-const asset = (name, srgb) => {
-  const t = files.load(new URL(`../assets/${tierName(name)}`, import.meta.url).href);
-  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 16;
-  return t;
-};
+const asset = (name, srgb) => loadTexture(tierName(name), { srgb, wrap: true, anisotropy: 16 });
+/** A baked map (occlusion): linear data, clamped rather than repeated, on the second UV set. */
+export function bakedMap(rel) {
+  return loadTexture(tierName(rel), { channel: 1 });
+}
 let stoneSets = null;
 /** Texture sets, each with the metres one repeat covers (`tile`). */
 export const stoneKit = () => stoneSets ?? (stoneSets = {
@@ -99,10 +97,33 @@ export const stoneKit = () => stoneSets ?? (stoneSets = {
   ashlar: { map: asset("walls/stone-color.jpg", true), normalMap: asset("walls/stone-normal.jpg"), roughnessMap: asset("walls/stone-rough.jpg"), tile: 4.8 },
   paving: { map: asset("stone/paving-color.jpg", true), normalMap: asset("stone/paving-normal.jpg"), roughnessMap: asset("stone/paving-rough.jpg"), tile: 9 },
 });
+/**
+ * The grade the stone gets, one set of uniforms shared by every stone material and driven by atmosphere.js: shade is
+ * turned warm and light cool by an amount that follows the sun (hue only; brightness is kept). `contact` (0..1) lets the
+ * baked occlusion, where a material has one, also soften direct light: the map holds contact shadows the shadow map is
+ * too coarse to draw.
+ */
+export const GRADE = { shade: { value: new THREE.Color(1, 1, 1) }, light: { value: new THREE.Color(1, 1, 1) }, amount: { value: 0 } };
+export function gradeStone(material, { contact = 0 } = {}) {
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, { gradeShade: GRADE.shade, gradeLight: GRADE.light, gradeAmount: GRADE.amount });
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "uniform vec3 gradeShade;\nuniform vec3 gradeLight;\nuniform float gradeAmount;\nvoid main() {")
+      .replace("#include <opaque_fragment>", `
+        ${contact > 0 && material.aoMap ? `outgoingLight *= mix( 1.0, texture2D( aoMap, vAoMapUv ).r, ${contact.toFixed(3)} );` : ""}
+        float gradeLum = dot( outgoingLight, vec3( 0.2126, 0.7152, 0.0722 ) );
+        vec3 gradeTint = mix( gradeShade, gradeLight, smoothstep( 0.02, 0.6, gradeLum ) );
+        vec3 gradeOut = outgoingLight * mix( vec3( 1.0 ), gradeTint, gradeAmount );
+        outgoingLight = gradeOut * ( gradeLum / max( dot( gradeOut, vec3( 0.2126, 0.7152, 0.0722 ) ), 1e-4 ) );
+        #include <opaque_fragment>`);
+  };
+  material.customProgramCacheKey = () => `stone-grade-${contact > 0 && material.aoMap ? contact : "n"}`;
+  return material;
+}
 export const pbrStone = (set, color = "#ffffff", extra = {}) => {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 1, metalness: 0, map: set.map, normalMap: set.normalMap, roughnessMap: set.roughnessMap, ...extra });
   m.userData.tile = set.tile;
-  return m;
+  return flag("grade", true) ? gradeStone(m) : m;
 };
 
 let haloTex = null;
